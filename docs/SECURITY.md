@@ -88,7 +88,7 @@ This document describes the security measures implemented in zerionis-log to pro
   - Bans known-vulnerable Log4j versions from the dependency tree.
   - Requires Maven 3.6+ and Java 11+.
 - **`ossindex-maven-plugin`** scans all dependencies against Sonatype OSS Index for known CVEs on every build (phase: `validate`).
-- **All dependency versions are pinned** in the parent POM `<dependencyManagement>` to prevent unexpected upgrades.
+- **Dependency versions are managed** per module: core pins its own versions, Spring Boot modules inherit from their respective BOM imports, preventing cross-version conflicts.
 - Run manual audit anytime: `mvn ossindex:audit`.
 
 ---
