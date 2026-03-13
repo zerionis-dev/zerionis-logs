@@ -27,7 +27,7 @@ Unstructured logs. No correlation. No context. When something breaks in producti
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot3</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
@@ -76,7 +76,7 @@ Every request. Every error. Automatically.
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot3</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
@@ -86,7 +86,7 @@ Every request. Every error. Automatically.
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot2</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
