@@ -76,20 +76,29 @@
             Core excludes these (1.7.x/1.2.x) so Boot 3 brings its own compatible versions.
             Explicit versions override parent's dependencyManagement.
         -->
+        <!--
+            Versions pinned explicitly because the parent POM's dependencyManagement
+            defines 1.7.x/1.2.x (for Boot 2 compatibility), which takes precedence
+            over the imported Boot 3 BOM. These are the versions Boot 3.2.5 uses.
+            scope=provided: the user's Spring Boot app already has these.
+        -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>2.0.13</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.4.14</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
             <version>1.4.14</version>
+            <scope>provided</scope>
         </dependency>
 
         <!--
@@ -128,6 +137,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!--

@@ -131,6 +131,7 @@ public class ZerionisAutoConfiguration {
     /** AOP aspect for slow method detection and method error capture. */
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnClass(name = "org.aspectj.lang.ProceedingJoinPoint")
     public ZerionisMethodAspect zerionisMethodAspect(ZerionisLogFormatter formatter) {
         return new ZerionisMethodAspect(formatter, properties);
     }
