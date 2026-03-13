@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-03-12
+
+### Fixed
+- Dependency scopes: slf4j, logback, jackson, spring-boot-autoconfigure changed to `provided` to prevent transitive version conflicts
+- Added `@ConditionalOnClass` guard on AOP aspect bean to prevent `ClassNotFoundException` without `spring-boot-starter-aop`
+
+### Changed
+- README rewritten in English with badges, quick start guide, security section, and contributing guidelines
+- Removed duplicate `README_EN.md`
+- Added `CHANGELOG.md`
+
 ## [1.0.1] - 2026-03-12
 
 ### Changed
@@ -28,5 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Supply chain hardening: strict checksums, CycloneDX SBOM, reproducible builds
 - Published to Maven Central under `com.zerionis`
 
+[1.0.2]: https://github.com/zerionis-dev/zerionis-logs/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/zerionis-dev/zerionis-logs/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/zerionis-dev/zerionis-logs/releases/tag/v1.0.0
