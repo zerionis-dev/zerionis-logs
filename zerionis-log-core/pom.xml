@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Hereda del POM padre. Toma versiones, properties y plugins de allá. -->
+    <!-- Inherits versions, properties, and plugins from the parent POM -->
     <parent>
         <groupId>com.zerionis</groupId>
         <artifactId>zerionis-log</artifactId>
@@ -16,45 +16,53 @@
     <description>Core logging logic - no Spring dependency</description>
 
     <!--
-        Este módulo NO depende de Spring.
-        Contiene lógica pura de Java: modelos, formateadores, utilidades.
-        Esto permite que sea reutilizado por spring-boot2 y spring-boot3
-        sin conflictos de javax vs jakarta.
+        This module has NO Spring dependency.
+        Contains pure Java logic: models, formatters, utilities.
+        This allows it to be reused by spring-boot2 and spring-boot3
+        without javax vs jakarta conflicts.
     -->
     <dependencies>
-        <!-- API de logging. Solo la interfaz, no la implementación. -->
+        <!--
+            SLF4J and Logback: compiled against but provided by the consuming Spring Boot app.
+            Versions here are the minimum API-compatible versions (Logback 1.2.x API is
+            forward-compatible with 1.4.x used by Boot 3).
+        -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
             <scope>provided</scope>
         </dependency>
 
-        <!-- Implementación de logging. Necesaria para crear nuestro appender JSON custom. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
             <scope>provided</scope>
         </dependency>
 
-        <!-- Engine de Logback. Necesario para extender LayoutBase o AppenderBase. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
             <scope>provided</scope>
         </dependency>
 
-        <!-- Jackson para serializar ZerionisLogEvent a JSON structured. -->
+        <!--
+            Jackson for JSON serialization. Versions are the minimum API-compatible
+            versions. At runtime, the consuming Spring Boot app provides its own.
+        -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
             <scope>provided</scope>
         </dependency>
 
-        <!-- Módulo de Jackson para serializar java.time (Instant, LocalDateTime, etc.) -->
-        <!-- Sin esto, Instant se serializa como objeto {seconds, nanos} en vez de ISO 8601. -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -62,6 +70,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -5,9 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!--
-        El parent es nuestro POM padre, NO spring-boot-starter-parent.
-        Esto nos permite controlar la estructura multi-módulo.
-        Spring Boot se importa como BOM en dependencyManagement.
+        Parent is our own aggregator POM, NOT spring-boot-starter-parent.
+        This lets us control the multi-module structure.
+        Spring Boot is imported as a BOM in dependencyManagement.
     -->
     <parent>
         <groupId>com.zerionis</groupId>
@@ -22,10 +22,10 @@
     <dependencyManagement>
         <dependencies>
             <!--
-                Importa todas las versiones de dependencias de Spring Boot 2.7.18.
+                Imports all dependency versions from Spring Boot 2.7.18.
                 type=pom + scope=import = BOM (Bill of Materials).
-                Esto nos da las versiones correctas de spring-web, spring-aop, etc.
-                sin necesidad de usar spring-boot-starter-parent como parent.
+                Provides correct versions for spring-web, spring-aop, etc.
+                without needing spring-boot-starter-parent as parent.
             -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -38,16 +38,15 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Nuestro módulo core con la lógica de logging (modelos, formatter, utils) -->
+        <!-- Core module with logging logic (models, formatter, utils) -->
         <dependency>
             <groupId>com.zerionis</groupId>
             <artifactId>zerionis-log-core</artifactId>
         </dependency>
 
         <!--
-            scope=provided: la app del usuario ya trae esta dependencia.
-            No la empaquetamos en nuestro JAR para evitar duplicados.
-            Incluye javax.servlet (NO jakarta) — esta es la diferencia clave con boot3.
+            scope=provided: the consuming app already brings this dependency.
+            Includes javax.servlet (NOT jakarta) — this is the key difference with boot3.
         -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -56,8 +55,8 @@
         </dependency>
 
         <!--
-            scope=provided: la app del usuario ya trae AOP si lo necesita.
-            Nos da @Aspect, @Around, ProceedingJoinPoint para interceptar controllers.
+            scope=provided: AOP for intercepting controllers with @Aspect.
+            Provides @Aspect, @Around, ProceedingJoinPoint.
         -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -65,16 +64,20 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Optional: for extracting userId from SecurityContext when Spring Security is on the classpath -->
+        <!--
+            Optional: for extracting userId from SecurityContext.
+            Works without it — extraction uses reflection with graceful fallback.
+            Consumers only get this if they explicitly add spring-boot-starter-security.
+        -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
-            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
 
         <!--
-            Para crear nuestra auto-configuration: @Configuration, @ConditionalOnClass, etc.
-            En Boot 2 se registra en META-INF/spring.factories.
+            For auto-configuration: @Configuration, @ConditionalOnClass, etc.
+            In Boot 2, registered via META-INF/spring.factories.
         -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -83,9 +86,9 @@
         </dependency>
 
         <!--
-            Genera metadata en META-INF/spring-configuration-metadata.json
-            para que IDEs autocompleten las propiedades zerionis.log.* en application.yml.
-            optional=true: solo se usa en compilación, no en runtime.
+            Generates metadata in META-INF/spring-configuration-metadata.json
+            so IDEs can autocomplete zerionis.log.* properties in application.yml.
+            optional=true: only used at compile time, not at runtime.
         -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

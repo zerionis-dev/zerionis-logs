@@ -10,7 +10,7 @@
 | TraceId | Propio (UUID), compatible con Sleuth/Micrometer si ya existe |
 | Convención JSON | camelCase |
 | Java mínimo | 11 |
-| Publicación | Repo privado, abrir después |
+| Publicación | Maven Central + GitHub Packages, repo público |
 | Licencia | Open source (Apache 2.0) |
 
 ---
@@ -31,7 +31,7 @@ Cada módulo spring funciona directamente como starter. El usuario solo instala 
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot3</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 </dependency>
 ```
 
@@ -124,22 +124,19 @@ Intercepta por defecto:
 
 ## Taxonomía de eventos (eventType)
 
-### v1.0
-
 | eventType | Quién lo emite | Descripción |
 |-----------|---------------|-------------|
+| `REQUEST_START` | Filter | Inicio de request HTTP (desactivado por defecto) |
 | `REQUEST_END` | Filter | Request HTTP completado |
 | `REQUEST_ERROR` | Filter | Request HTTP con error |
 | `METHOD_SLOW` | AOP Aspect | Método superó umbral de duración |
 | `METHOD_ERROR` | AOP Aspect | Excepción en método interceptado |
-
-### Opcional (desactivado por defecto)
-
-| eventType | Quién lo emite | Descripción |
-|-----------|---------------|-------------|
-| `REQUEST_START` | Filter | Inicio de request HTTP |
+| `APPLICATION_ERROR` | JSON Layout | Error de aplicación (fuera de contexto HTTP) |
+| `SQL_SLOW` | SQL Interceptor | Query SQL superó umbral de duración |
+| `SQL_ERROR` | SQL Interceptor | Query SQL con error |
 
 `REQUEST_START` está desactivado por defecto para no duplicar volumen de logs.
+`SQL_SLOW` y `SQL_ERROR` requieren `zerionis.log.sql-enabled=true`.
 
 ---
 
@@ -278,6 +275,8 @@ zerionis:
     exclude-endpoints:
       - /actuator/health
       - /favicon.ico
+    sql-enabled: false
+    sql-slow-threshold-ms: 500
 ```
 
 Todos los valores tienen defaults sensatos. Cero configuración obligatoria.
@@ -297,11 +296,13 @@ Todos los valores tienen defaults sensatos. Cero configuración obligatoria.
 - StackTrace truncado
 - Configuración vía `application.yml`
 
-### Diferido a v1.1+
-- Interceptor SQL (queries lentas)
-- Request/response body capture
-- Anotaciones custom (`@LogIgnore`, `@LogSkip`, `@LogDetail`)
-- Integración con userId desde SecurityContext
+### Implementado (desde v1.0.0)
+- Interceptor SQL (queries lentas y errores, opt-in via `sql-enabled`)
+- Request/response body capture (opt-in via `include-request-body` / `include-response-body`)
+- Anotaciones: `@LogIgnore` (class/method), `@LogSkip` (method), `@LogDetail` (method)
+- userId desde SecurityContext (via reflection, sin dependencia directa a spring-security)
+
+### Diferido
 - Soporte Log4j2
 
 ---
