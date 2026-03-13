@@ -7,7 +7,7 @@
     <!-- Parent aggregator POM -->
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
 
     <!-- Aggregator only — does not produce a JAR -->
     <packaging>pom</packaging>
@@ -60,7 +60,7 @@
         <spring-boot3.version>3.2.5</spring-boot3.version>
 
         <!-- Reproducible builds: strips timestamps from JAR manifests -->
-        <project.build.outputTimestamp>2026-03-12T23:48:55Z</project.build.outputTimestamp>
+        <project.build.outputTimestamp>2026-03-13T05:26:17Z</project.build.outputTimestamp>
 
         <!-- Test dependencies -->
         <junit.version>5.10.2</junit.version>
