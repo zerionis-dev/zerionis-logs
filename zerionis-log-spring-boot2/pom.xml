@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        El parent es nuestro POM padre, NO spring-boot-starter-parent.
+        Esto nos permite controlar la estructura multi-módulo.
+        Spring Boot se importa como BOM en dependencyManagement.
+    -->
+    <parent>
+        <groupId>com.zerionis</groupId>
+        <artifactId>zerionis-log</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>zerionis-log-spring-boot2</artifactId>
+    <name>Zerionis Log Spring Boot 2</name>
+    <description>Zerionis Log starter for Spring Boot 2.7.x</description>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--
+                Importa todas las versiones de dependencias de Spring Boot 2.7.18.
+                type=pom + scope=import = BOM (Bill of Materials).
+                Esto nos da las versiones correctas de spring-web, spring-aop, etc.
+                sin necesidad de usar spring-boot-starter-parent como parent.
+            -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot2.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Nuestro módulo core con la lógica de logging (modelos, formatter, utils) -->
+        <dependency>
+            <groupId>com.zerionis</groupId>
+            <artifactId>zerionis-log-core</artifactId>
+        </dependency>
+
+        <!--
+            scope=provided: la app del usuario ya trae esta dependencia.
+            No la empaquetamos en nuestro JAR para evitar duplicados.
+            Incluye javax.servlet (NO jakarta) — esta es la diferencia clave con boot3.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            scope=provided: la app del usuario ya trae AOP si lo necesita.
+            Nos da @Aspect, @Around, ProceedingJoinPoint para interceptar controllers.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Optional: for extracting userId from SecurityContext when Spring Security is on the classpath -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            Para crear nuestra auto-configuration: @Configuration, @ConditionalOnClass, etc.
+            En Boot 2 se registra en META-INF/spring.factories.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!--
+            Genera metadata en META-INF/spring-configuration-metadata.json
+            para que IDEs autocompleten las propiedades zerionis.log.* en application.yml.
+            optional=true: solo se usa en compilación, no en runtime.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

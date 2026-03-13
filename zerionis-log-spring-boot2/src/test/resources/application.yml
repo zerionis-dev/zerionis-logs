@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: test-service
+  main:
+    allow-bean-definition-overriding: true
+
+zerionis:
+  log:
+    service-name: test-service
+    environment: test
+    version: 1.0.0-test
+    slow-method-threshold-ms: 50
+    request-start-enabled: false
+    include-request-body: true
+    include-response-body: true
+    exclude-endpoints:
+      - /actuator/health

@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Coordenadas del proyecto padre (aggregator) -->
+    <groupId>com.zerionis</groupId>
+    <artifactId>zerionis-log</artifactId>
+    <version>1.0.0</version>
+
+    <!-- pom = este POM no genera JAR, solo agrupa los módulos hijos -->
+    <packaging>pom</packaging>
+
+    <name>Zerionis Log</name>
+    <description>Opinionated structured logging for Spring Boot applications</description>
+    <url>https://github.com/zerionis-dev/zerionis-logs</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Gabriel Miranda</name>
+            <organization>Zerionis</organization>
+            <organizationUrl>https://zerionis.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/zerionis-dev/zerionis-logs.git</connection>
+        <developerConnection>scm:git:ssh://github.com:zerionis-dev/zerionis-logs.git</developerConnection>
+        <url>https://github.com/zerionis-dev/zerionis-logs</url>
+    </scm>
+
+    <!-- Módulos del proyecto. Maven los compila en este orden. -->
+    <!-- core se compila primero porque los otros dos dependen de él. -->
+    <modules>
+        <module>zerionis-log-core</module>          <!-- Lógica pura, sin Spring -->
+        <module>zerionis-log-spring-boot2</module>   <!-- Starter para Spring Boot 2.7.x -->
+        <module>zerionis-log-spring-boot3</module>   <!-- Starter para Spring Boot 3.x -->
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Java 11 como versión base para core y spring-boot2 -->
+        <!-- spring-boot3 sobreescribe esto a Java 17 en su propio POM -->
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+
+        <!-- Versiones centralizadas aquí para evitar inconsistencias entre módulos -->
+        <slf4j.version>1.7.36</slf4j.version>          <!-- API de logging que usamos internamente -->
+        <logback.version>1.2.12</logback.version>       <!-- Implementación de logging, compatible con Boot 2 -->
+        <jackson.version>2.15.3</jackson.version>       <!-- Para serializar ZerionisLogEvent a JSON -->
+        <spring-boot2.version>2.7.18</spring-boot2.version>  <!-- Última versión estable de Boot 2 -->
+        <spring-boot3.version>3.2.5</spring-boot3.version>   <!-- Versión estable de Boot 3 -->
+
+        <!-- Reproducible builds: strips timestamps from JAR manifests -->
+        <project.build.outputTimestamp>2026-03-12T23:48:55Z</project.build.outputTimestamp>
+
+        <!-- Test dependencies -->
+        <junit.version>5.10.2</junit.version>
+    </properties>
+
+    <!--
+        dependencyManagement NO agrega dependencias a los módulos.
+        Solo centraliza versiones. Cada módulo elige qué dependencias usar
+        sin repetir la versión. Esto evita conflictos de versiones.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Permite que spring-boot2 y spring-boot3 dependan de core sin hardcodear versión -->
+            <dependency>
+                <groupId>com.zerionis</groupId>
+                <artifactId>zerionis-log-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- SLF4J: API estándar de logging en Java. No logea por sí sola, necesita implementación (Logback). -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <!-- Logback Classic: implementación de SLF4J. Es el default de Spring Boot. -->
+            <!-- Aquí es donde definiremos nuestro custom appender para JSON. -->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+
+            <!-- Logback Core: engine interno de Logback. Necesario para crear appenders custom. -->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+
+            <!-- Jackson: serializa objetos Java a JSON. Lo usa ZerionisLogFormatter. -->
+            <!-- All Jackson artifacts must be at the same version to avoid ClassNotFoundException -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <!-- Jackson JSR310: soporte para java.time (Instant → ISO 8601 string) -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <!-- JUnit 5 for testing -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <!-- Configura compilación Java para todos los módulos -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+
+            <!--
+                Maven Enforcer: prevents builds with known-bad dependency combinations.
+                Ensures no dependency convergence issues and requires minimum Maven version.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <id>enforce-versions</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <!-- Fail if two dependencies pull different versions of the same transitive -->
+                                <dependencyConvergence/>
+                                <!-- Require Maven 3.6+ for reproducible builds -->
+                                <requireMavenVersion>
+                                    <version>3.6.0</version>
+                                </requireMavenVersion>
+                                <!-- Require Java 11+ -->
+                                <requireJavaVersion>
+                                    <version>11</version>
+                                </requireJavaVersion>
+                                <!-- Ban known-vulnerable dependencies from appearing anywhere in the tree -->
+                                <bannedDependencies>
+                                    <excludes>
+                                        <!-- Log4j 2.x < 2.17.1 is vulnerable to Log4Shell (CVE-2021-44228) -->
+                                        <exclude>org.apache.logging.log4j:log4j-core:[,2.17.1)</exclude>
+                                    </excludes>
+                                </bannedDependencies>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                OSS Index Audit: scans all dependencies for known CVEs on every build.
+                Connects to Sonatype OSS Index (free, no API key needed).
+                Run manually: mvn ossindex:audit
+            -->
+            <plugin>
+                <groupId>org.sonatype.ossindex.maven</groupId>
+                <artifactId>ossindex-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>audit-dependencies</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>audit</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                CycloneDX SBOM: generates a Software Bill of Materials on every build.
+                When a new zero-day CVE drops, you can instantly check if any
+                affected library is in your dependency tree without rebuilding.
+                Output: target/bom.json (CycloneDX format, compatible with OWASP tools).
+                Run manually: mvn cyclonedx:makeAggregateBom
+            -->
+            <plugin>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+                <version>2.7.11</version>
+                <executions>
+                    <execution>
+                        <id>generate-sbom</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>makeAggregateBom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <schemaVersion>1.5</schemaVersion>
+                    <includeBomSerialNumber>true</includeBomSerialNumber>
+                    <includeCompileScope>true</includeCompileScope>
+                    <includeProvidedScope>true</includeProvidedScope>
+                    <includeRuntimeScope>true</includeRuntimeScope>
+                    <includeSystemScope>false</includeSystemScope>
+                    <includeTestScope>false</includeTestScope>
+                    <outputFormat>json</outputFormat>
+                </configuration>
+            </plugin>
+
+            <!--
+                Reproducible builds: strips timestamps and OS-specific metadata from JARs.
+                Two builds of the same source produce byte-identical artifacts.
+                Protects against build-time supply chain attacks (compromised build env).
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <Build-Reproducible>true</Build-Reproducible>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Surefire: runs JUnit 5 tests during build -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+
+            <!-- Attach source JARs for consuming projects -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals><goal>jar-no-fork</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Attach javadoc JARs -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals><goal>jar</goal></goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doclint>none</doclint>
+                </configuration>
+            </plugin>
+            <!--
+                GPG signing for Maven Central. Skipped by default.
+                Activate with: mvn deploy -Pgpg-sign
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+            Profile for Maven Central publishing.
+            Activate with: mvn deploy -Pcentral
+            Requires: GPG key configured, Sonatype token in settings.xml
+        -->
+        <profile>
+            <id>central</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>false</skip>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.4.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+            <distributionManagement>
+                <repository>
+                    <id>central</id>
+                    <url>https://central.sonatype.com</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+    </profiles>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/zerionis-dev/zerionis-logs</url>
+        </repository>
+    </distributionManagement>
+</project>

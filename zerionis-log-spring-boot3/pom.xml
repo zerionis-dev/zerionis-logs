@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        El parent es nuestro POM padre, NO spring-boot-starter-parent.
+        Esto nos permite controlar la estructura multi-módulo.
+        Spring Boot se importa como BOM en dependencyManagement.
+    -->
+    <parent>
+        <groupId>com.zerionis</groupId>
+        <artifactId>zerionis-log</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>zerionis-log-spring-boot3</artifactId>
+    <name>Zerionis Log Spring Boot 3</name>
+    <description>Zerionis Log starter for Spring Boot 3.x</description>
+
+    <properties>
+        <!--
+            Spring Boot 3 requiere Java 17 mínimo.
+            Sobreescribe el Java 11 del parent POM solo para este módulo.
+        -->
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--
+                BOM de Spring Boot 3.2.5.
+                Trae las versiones correctas de spring-web (con jakarta.servlet),
+                spring-aop, y todas las dependencias de Boot 3.
+            -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot3.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!--
+            Nuestro módulo core con la lógica de logging (modelos, formatter, utils).
+            Logback is excluded so Spring Boot 3 brings its own compatible version (1.4.x).
+            Core compiles against Logback 1.2.x API which is compatible with 1.4.x at runtime.
+        -->
+        <dependency>
+            <groupId>com.zerionis</groupId>
+            <artifactId>zerionis-log-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--
+            SLF4J 2.x and Logback 1.4.x for Spring Boot 3 compatibility.
+            Core excludes these (1.7.x/1.2.x) so Boot 3 brings its own compatible versions.
+            Explicit versions override parent's dependencyManagement.
+        -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.13</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.4.14</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>1.4.14</version>
+        </dependency>
+
+        <!--
+            scope=provided: la app del usuario ya trae esta dependencia.
+            Incluye jakarta.servlet (NO javax) — esta es la diferencia clave con boot2.
+            El Servlet Filter de este módulo usa jakarta.servlet.Filter.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            scope=provided: AOP para interceptar controllers con @Aspect.
+            La lógica del Aspect es casi idéntica a boot2.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Optional: for extracting userId from SecurityContext when Spring Security is on the classpath -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            Para crear nuestra auto-configuration.
+            En Boot 3 se registra en META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+            (ya no en spring.factories como Boot 2).
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!--
+            Genera metadata para autocompletado en IDEs.
+            Las propiedades zerionis.log.* aparecerán en application.yml con sugerencias.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+                Skip enforcer for this module. Boot 3 requires SLF4J 2.x + Logback 1.4.x
+                which intentionally diverge from the parent POM's versions (1.7.x/1.2.x for Boot 2).
+                This is expected and correct — not a convergence issue.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
