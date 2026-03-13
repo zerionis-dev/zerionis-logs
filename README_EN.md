@@ -23,7 +23,7 @@ Unstructured logs with no context, no correlation, no standard format. When some
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot3</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
@@ -68,7 +68,7 @@ ERROR c.e.PaymentService - Error in process
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot3</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
@@ -78,7 +78,7 @@ ERROR c.e.PaymentService - Error in process
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot2</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 

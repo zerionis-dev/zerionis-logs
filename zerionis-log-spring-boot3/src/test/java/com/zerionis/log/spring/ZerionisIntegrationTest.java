@@ -75,7 +75,7 @@ class ZerionisIntegrationTest {
             ZerionisProperties props = context.getBean(ZerionisProperties.class);
             assertEquals("test-service", props.getServiceName());
             assertEquals("test", props.getEnvironment());
-            assertEquals("1.0.0-test", props.getVersion());
+            assertEquals("1.0.1-test", props.getVersion());
             assertEquals(50, props.getSlowMethodThresholdMs());
             assertTrue(props.isIncludeRequestBody());
             assertTrue(props.isIncludeResponseBody());
