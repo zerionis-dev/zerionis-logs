@@ -110,6 +110,7 @@ public class ZerionisAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConditionalOnClass(name = "org.aspectj.lang.ProceedingJoinPoint")
     public ZerionisMethodAspect zerionisMethodAspect(ZerionisLogFormatter formatter) {
         return new ZerionisMethodAspect(formatter, properties);
     }

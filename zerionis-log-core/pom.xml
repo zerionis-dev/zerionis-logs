@@ -26,24 +26,28 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Implementación de logging. Necesaria para crear nuestro appender JSON custom. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Engine de Logback. Necesario para extender LayoutBase o AppenderBase. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Jackson para serializar ZerionisLogEvent a JSON structured. -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Módulo de Jackson para serializar java.time (Instant, LocalDateTime, etc.) -->
@@ -51,6 +55,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- JUnit 5 for security/fuzz testing -->
