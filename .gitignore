@@ -38,3 +38,11 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Credentials
+*.pem
+*.key
+
+# Coverage
+coverage/
+
