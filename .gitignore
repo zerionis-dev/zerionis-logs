@@ -38,3 +38,14 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Credentials
+*.pem
+*.key
+
+# Coverage
+coverage/
+
+# Claude Code
+.claude/
+.mcp.json
