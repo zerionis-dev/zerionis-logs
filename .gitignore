@@ -46,3 +46,12 @@ Thumbs.db
 # Coverage
 coverage/
 
+
+# Security - never commit
+.env.*
+*.keystore
+*.jks
+*.p12
+credentials*
+secrets*
+*.secret
