@@ -49,3 +49,12 @@ coverage/
 # Claude Code
 .claude/
 .mcp.json
+
+# Security - never commit
+.env.*
+*.keystore
+*.jks
+*.p12
+credentials*
+secrets*
+*.secret
