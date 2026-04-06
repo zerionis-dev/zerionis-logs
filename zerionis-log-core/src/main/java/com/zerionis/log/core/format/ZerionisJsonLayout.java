@@ -36,7 +36,12 @@ import java.util.Map;
 public class ZerionisJsonLayout extends LayoutBase<ILoggingEvent> {
 
     private final ZerionisLogFormatter formatter = new ZerionisLogFormatter();
-    private final LogSanitizer sanitizer = new LogSanitizer();
+
+    /**
+     * Shared configured sanitizer, set by auto-configuration at startup.
+     * Falls back to a default instance if not configured (e.g. standalone use).
+     */
+    private static volatile LogSanitizer configuredSanitizer;
 
     // ── Configurable properties (set via auto-configuration) ──
 
@@ -44,6 +49,21 @@ public class ZerionisJsonLayout extends LayoutBase<ILoggingEvent> {
     private String environment;
     private String version;
     private int maxStackTraceLines = 25;
+
+    /**
+     * Sets the shared LogSanitizer instance used by all layout instances.
+     * Called by auto-configuration after creating the sanitizer bean.
+     *
+     * @param sanitizer the configured sanitizer
+     */
+    public static void setConfiguredSanitizer(LogSanitizer sanitizer) {
+        configuredSanitizer = sanitizer;
+    }
+
+    private LogSanitizer getSanitizer() {
+        LogSanitizer s = configuredSanitizer;
+        return s != null ? s : new LogSanitizer();
+    }
 
     /**
      * Called by Logback for every log event.
@@ -69,7 +89,7 @@ public class ZerionisJsonLayout extends LayoutBase<ILoggingEvent> {
 
         Map<String, Object> extra = ZerionisContext.getAll();
         if (!extra.isEmpty()) {
-            extra = sanitizer.sanitize(extra);
+            extra = getSanitizer().sanitize(extra);
         }
 
         IThrowableProxy throwableProxy = loggingEvent.getThrowableProxy();
@@ -92,7 +112,8 @@ public class ZerionisJsonLayout extends LayoutBase<ILoggingEvent> {
                 .clientIp(mdc.get(JsonFieldNames.MDC_CLIENT_IP))
                 .userId(mdc.get(JsonFieldNames.MDC_USER_ID))
                 .className(loggingEvent.getLoggerName())
-                .message(InputValidator.truncateMessage(loggingEvent.getFormattedMessage()))
+                .message(InputValidator.stripControlChars(
+                        InputValidator.truncateMessage(loggingEvent.getFormattedMessage())))
                 .error(throwable != null
                         ? StackTraceUtils.fromThrowable(throwable, maxStackTraceLines)
                         : null)

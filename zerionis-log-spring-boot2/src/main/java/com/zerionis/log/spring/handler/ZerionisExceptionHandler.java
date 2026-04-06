@@ -2,6 +2,8 @@ package com.zerionis.log.spring.handler;
 
 import com.zerionis.log.spring.filter.ZerionisRequestFilter;
 import javax.servlet.http.HttpServletRequest;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * in the REQUEST_ERROR event. Does not emit its own log to prevent duplicates.</p>
  */
 @RestControllerAdvice
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class ZerionisExceptionHandler {
 
     @ExceptionHandler(Exception.class)

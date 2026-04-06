@@ -1,6 +1,8 @@
 package com.zerionis.log.core.context;
 
 import com.zerionis.log.core.util.InputValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,8 +29,10 @@ import java.util.Map;
  */
 public final class ZerionisContext {
 
+    private static final Logger log = LoggerFactory.getLogger(ZerionisContext.class);
+
     /** Maximum number of extra fields allowed per request. */
-    private static int maxFields = 20;
+    private static volatile int maxFields = 20;
 
     /**
      * Per-thread storage for extra fields.
@@ -46,7 +50,6 @@ public final class ZerionisContext {
      *
      * @param key   field name (e.g. "orderId")
      * @param value field value (e.g. "ORD-123")
-     * @throws IllegalStateException if the max fields limit is reached
      */
     public static void put(String key, Object value) {
         // Validate key: reject null, empty, control chars, or overly long keys
@@ -58,9 +61,10 @@ public final class ZerionisContext {
         Map<String, Object> map = CONTEXT.get();
 
         if (!map.containsKey(validatedKey) && map.size() >= maxFields) {
-            throw new IllegalStateException(
-                    "ZerionisContext: max extra fields limit reached (" + maxFields + "). "
-                    + "Configure zerionis.log.max-extra-fields to increase.");
+            log.warn("ZerionisContext: max extra fields limit reached ({}). "
+                    + "Field '{}' ignored. Configure zerionis.log.max-extra-fields to increase.",
+                    maxFields, validatedKey);
+            return;
         }
 
         // Truncate oversized string values to prevent log bloat

@@ -104,7 +104,10 @@ public class ZerionisAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public LogSanitizer logSanitizer() {
-        return new LogSanitizer(new java.util.HashSet<>(properties.getSanitizeFields()));
+        LogSanitizer sanitizer = new LogSanitizer(new java.util.HashSet<>(properties.getSanitizeFields()),
+                properties.isPartialRedactionEnabled());
+        ZerionisJsonLayout.setConfiguredSanitizer(sanitizer);
+        return sanitizer;
     }
 
     /**

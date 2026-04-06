@@ -2,6 +2,8 @@ package com.zerionis.log.spring.handler;
 
 import com.zerionis.log.spring.filter.ZerionisRequestFilter;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * the appropriate HTTP error response.</p>
  */
 @RestControllerAdvice
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class ZerionisExceptionHandler {
 
     /**

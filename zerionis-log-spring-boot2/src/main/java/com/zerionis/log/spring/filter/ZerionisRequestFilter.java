@@ -25,6 +25,10 @@ import org.slf4j.MDC;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +45,23 @@ public class ZerionisRequestFilter implements Filter {
     private static final Logger log = LoggerFactory.getLogger(ZerionisRequestFilter.class);
     private static final String TRACE_ID_HEADER = "X-Trace-Id";
     public static final String ERROR_ATTRIBUTE = "zerionis.error";
+
+    /** Content types that are never logged (binary, multipart, file uploads). */
+    private static final List<String> SKIP_CONTENT_TYPES = Arrays.asList(
+            "multipart/",
+            "application/octet-stream",
+            "image/",
+            "audio/",
+            "video/",
+            "application/pdf",
+            "application/zip",
+            "application/gzip"
+    );
+
+    // Cached reflection handles for Spring Security userId extraction
+    private static volatile boolean securityReflectionResolved = false;
+    private static Class<?> cachedContextHolderClass;
+    private static java.lang.reflect.Method cachedGetContextMethod;
 
     private final TraceIdGenerator traceIdGenerator;
     private final RequestIdGenerator requestIdGenerator;
@@ -108,21 +129,29 @@ public class ZerionisRequestFilter implements Filter {
         HttpServletRequest activeRequest = request;
         HttpServletResponse activeResponse = response;
 
-        if (properties.isIncludeRequestBody()) {
+        boolean captureRequestBody = properties.isIncludeRequestBody()
+                && isBodyContentTypeAllowed(request.getContentType());
+        boolean captureResponseBody = properties.isIncludeResponseBody();
+
+        if (captureRequestBody) {
             org.springframework.web.util.ContentCachingRequestWrapper wrappedRequest =
                     new org.springframework.web.util.ContentCachingRequestWrapper(request);
             activeRequest = wrappedRequest;
         }
 
         org.springframework.web.util.ContentCachingResponseWrapper wrappedResponse = null;
-        if (properties.isIncludeResponseBody()) {
+        if (captureResponseBody) {
             wrappedResponse = new org.springframework.web.util.ContentCachingResponseWrapper(response);
             activeResponse = wrappedResponse;
         }
 
+        // Capture and redact request headers (only when enabled)
+        Map<String, String> sanitizedHeaders = properties.isIncludeHeaders()
+                ? captureHeaders(request) : Collections.emptyMap();
+
         if (properties.isRequestStartEnabled()) {
             emitEvent(EventType.REQUEST_START, path, httpMethod, clientIp,
-                      traceId, requestId, null, null, null, null, null);
+                      traceId, requestId, null, null, null, null, null, sanitizedHeaders);
         }
 
         long startTime = System.currentTimeMillis();
@@ -144,16 +173,21 @@ public class ZerionisRequestFilter implements Filter {
                 }
             }
 
-            if (properties.isIncludeRequestBody() && activeRequest instanceof org.springframework.web.util.ContentCachingRequestWrapper) {
+            if (captureRequestBody && activeRequest instanceof org.springframework.web.util.ContentCachingRequestWrapper) {
                 byte[] body = ((org.springframework.web.util.ContentCachingRequestWrapper) activeRequest).getContentAsByteArray();
                 if (body.length > 0) {
-                    capturedRequestBody = InputValidator.truncateBody(new String(body, StandardCharsets.UTF_8));
+                    String rawBody = InputValidator.truncateBody(new String(body, StandardCharsets.UTF_8));
+                    capturedRequestBody = sanitizer.sanitizeJsonBody(rawBody);
                 }
             }
             if (wrappedResponse != null) {
                 byte[] body = wrappedResponse.getContentAsByteArray();
                 if (body.length > 0) {
-                    capturedResponseBody = InputValidator.truncateBody(new String(body, StandardCharsets.UTF_8));
+                    String responseContentType = wrappedResponse.getContentType();
+                    if (isBodyContentTypeAllowed(responseContentType)) {
+                        String rawBody = InputValidator.truncateBody(new String(body, StandardCharsets.UTF_8));
+                        capturedResponseBody = sanitizer.sanitizeJsonBody(rawBody);
+                    }
                 }
                 wrappedResponse.copyBodyToResponse();
             }
@@ -164,7 +198,7 @@ public class ZerionisRequestFilter implements Filter {
 
             emitEvent(eventType, path, httpMethod, clientIp,
                       traceId, requestId, httpStatus, durationMs, caughtException,
-                      capturedRequestBody, capturedResponseBody);
+                      capturedRequestBody, capturedResponseBody, sanitizedHeaders);
 
             MDC.clear();
             ZerionisContext.clear();
@@ -174,7 +208,8 @@ public class ZerionisRequestFilter implements Filter {
     private void emitEvent(EventType eventType, String path, String httpMethod,
                            String clientIp, String traceId, String requestId,
                            Integer httpStatus, Long durationMs, Throwable exception,
-                           String requestBody, String responseBody) {
+                           String requestBody, String responseBody,
+                           Map<String, String> headers) {
 
         ZerionisLogEvent.Builder builder = ZerionisLogEvent.builder()
                 .timestamp(Instant.now())
@@ -209,6 +244,13 @@ public class ZerionisRequestFilter implements Filter {
             builder.extra(sanitizer.sanitize(extra));
         }
 
+        // Include sanitized headers as extra fields (after context extras so they don't get overwritten)
+        if (headers != null && !headers.isEmpty()) {
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                builder.addExtra("header." + header.getKey(), header.getValue());
+            }
+        }
+
         ZerionisLogEvent event = builder.build();
 
         if (eventType == EventType.REQUEST_ERROR) {
@@ -218,11 +260,86 @@ public class ZerionisRequestFilter implements Filter {
         }
     }
 
+    /**
+     * Captures request headers with sensitive values redacted.
+     */
+    private Map<String, String> captureHeaders(HttpServletRequest request) {
+        Map<String, String> headers = new LinkedHashMap<>();
+        Enumeration<String> headerNames = request.getHeaderNames();
+        if (headerNames == null) {
+            return headers;
+        }
+        while (headerNames.hasMoreElements()) {
+            String name = headerNames.nextElement();
+            String value = request.getHeader(name);
+            headers.put(name, sanitizer.sanitizeHeader(name, value));
+        }
+        return headers;
+    }
+
+    /**
+     * Checks if the given content type is allowed for body logging.
+     * Returns true if no content-type restrictions are configured (empty list),
+     * or if the content type matches one of the allowed types.
+     * Always returns false for binary/multipart content types.
+     */
+    private boolean isBodyContentTypeAllowed(String contentType) {
+        if (contentType == null) {
+            return false;
+        }
+
+        String lowerContentType = contentType.toLowerCase();
+
+        // Always skip binary and multipart content
+        for (String skipType : SKIP_CONTENT_TYPES) {
+            if (lowerContentType.startsWith(skipType)) {
+                return false;
+            }
+        }
+
+        List<String> allowedTypes = properties.getBodyContentTypes();
+
+        // Empty list means allow all (non-binary) content types
+        if (allowedTypes == null || allowedTypes.isEmpty()) {
+            return true;
+        }
+
+        // Check if content type matches any allowed type
+        for (String allowed : allowedTypes) {
+            if (lowerContentType.startsWith(allowed.toLowerCase())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Extracts the authenticated user ID from Spring Security's SecurityContext.
+     * Caches Class.forName and Method lookups to avoid repeated reflection overhead.
+     */
     private String extractUserId() {
         try {
-            Class<?> contextHolderClass = Class.forName(
-                    "org.springframework.security.core.context.SecurityContextHolder");
-            Object context = contextHolderClass.getMethod("getContext").invoke(null);
+            if (!securityReflectionResolved) {
+                synchronized (ZerionisRequestFilter.class) {
+                    if (!securityReflectionResolved) {
+                        try {
+                            cachedContextHolderClass = Class.forName(
+                                    "org.springframework.security.core.context.SecurityContextHolder");
+                            cachedGetContextMethod = cachedContextHolderClass.getMethod("getContext");
+                        } catch (ClassNotFoundException e) {
+                            // Spring Security not on classpath
+                        }
+                        securityReflectionResolved = true;
+                    }
+                }
+            }
+
+            if (cachedContextHolderClass == null || cachedGetContextMethod == null) {
+                return null;
+            }
+
+            Object context = cachedGetContextMethod.invoke(null);
             if (context == null) return null;
 
             Object authentication = context.getClass().getMethod("getAuthentication").invoke(context);
@@ -262,11 +379,25 @@ public class ZerionisRequestFilter implements Filter {
         return request.getRemoteAddr();
     }
 
+    /**
+     * Checks if the given path is in the exclude list.
+     * Supports prefix matching: if an excluded endpoint ends with {@code *},
+     * any path starting with that prefix is excluded.
+     */
     private boolean isExcluded(String path) {
         List<String> excluded = properties.getExcludeEndpoints();
         if (excluded == null || excluded.isEmpty()) {
             return false;
         }
-        return excluded.contains(path);
+        for (String endpoint : excluded) {
+            if (endpoint.endsWith("*")) {
+                if (path.startsWith(endpoint.substring(0, endpoint.length() - 1))) {
+                    return true;
+                }
+            } else if (endpoint.equals(path)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -51,11 +51,11 @@ public class ZerionisProperties {
     /** Method duration threshold in milliseconds for METHOD_SLOW events. Default: 1000. */
     private long slowMethodThresholdMs = 1000;
 
-    /** Whether to sanitize sensitive fields in logs. Default: true. */
-    private boolean sanitizeEnabled = true;
-
     /** Additional field names to sanitize (added to default blacklist). */
     private List<String> sanitizeFields = new ArrayList<>();
+
+    /** Whether to include HTTP request headers in log events. Default: false. */
+    private boolean includeHeaders = false;
 
     /** Endpoints to exclude from logging (e.g. /actuator/health). */
     private List<String> excludeEndpoints = new ArrayList<>();
@@ -65,6 +65,19 @@ public class ZerionisProperties {
 
     /** SQL query duration threshold in milliseconds for SQL_SLOW events. Default: 500. */
     private long sqlSlowThresholdMs = 500;
+
+    /**
+     * Content types allowed for body logging. Only bodies with these content types are captured.
+     * Default: only "application/json". Set to empty list to allow all content types.
+     */
+    private List<String> bodyContentTypes = new ArrayList<>(java.util.Collections.singletonList("application/json"));
+
+    /**
+     * Whether to enable partial redaction for long sensitive values.
+     * When enabled, values longer than 12 characters show first 4 and last 4 chars (e.g. "eyJh...xYz9").
+     * Short values are still fully redacted. Default: false.
+     */
+    private boolean partialRedactionEnabled = false;
 
     // ── Getters and Setters ──
 
@@ -140,14 +153,6 @@ public class ZerionisProperties {
         this.slowMethodThresholdMs = slowMethodThresholdMs;
     }
 
-    public boolean isSanitizeEnabled() {
-        return sanitizeEnabled;
-    }
-
-    public void setSanitizeEnabled(boolean sanitizeEnabled) {
-        this.sanitizeEnabled = sanitizeEnabled;
-    }
-
     public List<String> getSanitizeFields() {
         return sanitizeFields;
     }
@@ -164,6 +169,14 @@ public class ZerionisProperties {
         this.excludeEndpoints = excludeEndpoints;
     }
 
+    public boolean isIncludeHeaders() {
+        return includeHeaders;
+    }
+
+    public void setIncludeHeaders(boolean includeHeaders) {
+        this.includeHeaders = includeHeaders;
+    }
+
     public boolean isSqlEnabled() {
         return sqlEnabled;
     }
@@ -178,5 +191,21 @@ public class ZerionisProperties {
 
     public void setSqlSlowThresholdMs(long sqlSlowThresholdMs) {
         this.sqlSlowThresholdMs = sqlSlowThresholdMs;
+    }
+
+    public List<String> getBodyContentTypes() {
+        return bodyContentTypes;
+    }
+
+    public void setBodyContentTypes(List<String> bodyContentTypes) {
+        this.bodyContentTypes = bodyContentTypes;
+    }
+
+    public boolean isPartialRedactionEnabled() {
+        return partialRedactionEnabled;
+    }
+
+    public void setPartialRedactionEnabled(boolean partialRedactionEnabled) {
+        this.partialRedactionEnabled = partialRedactionEnabled;
     }
 }
