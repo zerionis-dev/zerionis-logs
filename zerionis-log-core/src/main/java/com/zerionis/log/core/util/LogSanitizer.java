@@ -252,6 +252,15 @@ public class LogSanitizer {
         return blacklist.contains(lower);
     }
 
+    /** Patterns for field-level sensitive detection (more conservative than headers). */
+    private static final Set<String> SENSITIVE_FIELD_PATTERNS = new HashSet<>(Arrays.asList(
+            "token",
+            "secret",
+            "password",
+            "credential",
+            "auth"
+    ));
+
     /**
      * Checks whether a field name is sensitive (exact match or pattern match).
      *
@@ -266,7 +275,7 @@ public class LogSanitizer {
         if (blacklist.contains(lower)) {
             return true;
         }
-        for (String pattern : SENSITIVE_HEADER_PATTERNS) {
+        for (String pattern : SENSITIVE_FIELD_PATTERNS) {
             if (lower.contains(pattern)) {
                 return true;
             }
