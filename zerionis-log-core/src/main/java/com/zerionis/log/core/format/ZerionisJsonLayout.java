@@ -41,6 +41,7 @@ public class ZerionisJsonLayout extends LayoutBase<ILoggingEvent> {
      * Shared configured sanitizer, set by auto-configuration at startup.
      * Falls back to a default instance if not configured (e.g. standalone use).
      */
+    private static final LogSanitizer DEFAULT_SANITIZER = new LogSanitizer();
     private static volatile LogSanitizer configuredSanitizer;
 
     // ── Configurable properties (set via auto-configuration) ──
@@ -62,7 +63,7 @@ public class ZerionisJsonLayout extends LayoutBase<ILoggingEvent> {
 
     private LogSanitizer getSanitizer() {
         LogSanitizer s = configuredSanitizer;
-        return s != null ? s : new LogSanitizer();
+        return s != null ? s : DEFAULT_SANITIZER;
     }
 
     /**

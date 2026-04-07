@@ -77,8 +77,17 @@ public class ZerionisLogFormatter {
         try {
             return format(event);
         } catch (JsonProcessingException e) {
+            String msg = e.getMessage();
+            if (msg == null) {
+                msg = "unknown";
+            }
+            msg = msg.replace("\\", "\\\\")
+                     .replace("\"", "\\\"")
+                     .replace("\n", "\\n")
+                     .replace("\r", "\\r")
+                     .replace("\t", "\\t");
             return "{\"level\":\"ERROR\",\"message\":\"zerionis-log: serialization error: "
-                    + e.getMessage().replace("\"", "'") + "\"}";
+                    + msg + "\"}";
         }
     }
 }

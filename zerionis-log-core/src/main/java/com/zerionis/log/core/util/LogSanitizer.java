@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -50,11 +51,15 @@ public class LogSanitizer {
     /** Default sensitive field names (stored lowercase for case-insensitive matching). */
     private static final Set<String> DEFAULT_BLACKLIST = new HashSet<>(Arrays.asList(
             "password",
+            "passwd",
+            "pass",
+            "pwd",
             "token",
             "authorization",
             "secret",
             "apikey",
             "api_key",
+            "api-key",
             "accesstoken",
             "access_token",
             "refreshtoken",
@@ -63,7 +68,20 @@ public class LogSanitizer {
             "card_number",
             "cvv",
             "ssn",
-            "x-api-key"
+            "x-api-key",
+            "bearer",
+            "jwt",
+            "private_key",
+            "privatekey",
+            "signing_key",
+            "session",
+            "session_id",
+            "sessionid",
+            "client_secret",
+            "clientsecret",
+            "credentials",
+            "otp",
+            "mfa_code"
     ));
 
     /** Headers that should always be redacted (stored lowercase). */
@@ -97,7 +115,7 @@ public class LogSanitizer {
 
     /** Creates a sanitizer with the default blacklist. */
     public LogSanitizer() {
-        this.blacklist = new HashSet<>(DEFAULT_BLACKLIST);
+        this.blacklist = Collections.unmodifiableSet(new HashSet<>(DEFAULT_BLACKLIST));
     }
 
     /**
@@ -107,12 +125,13 @@ public class LogSanitizer {
      * @param additionalFields extra field names to redact (e.g. "ssn", "dob")
      */
     public LogSanitizer(Set<String> additionalFields) {
-        this.blacklist = new HashSet<>(DEFAULT_BLACKLIST);
+        Set<String> combined = new HashSet<>(DEFAULT_BLACKLIST);
         if (additionalFields != null) {
             for (String field : additionalFields) {
-                this.blacklist.add(field.toLowerCase());
+                combined.add(field.toLowerCase());
             }
         }
+        this.blacklist = Collections.unmodifiableSet(combined);
     }
 
     /**
@@ -144,7 +163,7 @@ public class LogSanitizer {
         for (Map.Entry<String, Object> entry : fields.entrySet()) {
             String key = entry.getKey();
 
-            if (blacklist.contains(key.toLowerCase())) {
+            if (isSensitive(key)) {
                 sanitized.put(key, redactValue(entry.getValue()));
             } else {
                 sanitized.put(key, sanitizeValue(entry.getValue(), 0));
@@ -234,7 +253,7 @@ public class LogSanitizer {
     }
 
     /**
-     * Checks whether a field name is in the sensitive blacklist.
+     * Checks whether a field name is sensitive (exact match or pattern match).
      *
      * @param fieldName field name to check
      * @return true if the field would be redacted
@@ -243,7 +262,16 @@ public class LogSanitizer {
         if (fieldName == null) {
             return false;
         }
-        return blacklist.contains(fieldName.toLowerCase());
+        String lower = fieldName.toLowerCase();
+        if (blacklist.contains(lower)) {
+            return true;
+        }
+        for (String pattern : SENSITIVE_HEADER_PATTERNS) {
+            if (lower.contains(pattern)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ── Private helpers ──
@@ -263,7 +291,7 @@ public class LogSanitizer {
             Map<String, Object> sanitizedMap = new HashMap<>(mapValue.size());
             for (Map.Entry<String, Object> entry : mapValue.entrySet()) {
                 String key = entry.getKey();
-                if (blacklist.contains(key.toLowerCase())) {
+                if (isSensitive(key)) {
                     sanitizedMap.put(key, redactValue(entry.getValue()));
                 } else {
                     sanitizedMap.put(key, sanitizeValue(entry.getValue(), depth + 1));
@@ -326,7 +354,7 @@ public class LogSanitizer {
             }
 
             for (String fieldName : names) {
-                if (blacklist.contains(fieldName.toLowerCase())) {
+                if (isSensitive(fieldName)) {
                     JsonNode fieldValue = obj.get(fieldName);
                     if (fieldValue != null && fieldValue.isTextual()) {
                         obj.set(fieldName, new TextNode(redactString(fieldValue.asText())));
