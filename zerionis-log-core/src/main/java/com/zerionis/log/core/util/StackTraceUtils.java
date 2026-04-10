@@ -34,7 +34,7 @@ public class StackTraceUtils {
 
         String type = throwable.getClass().getName();
         String message = throwable.getMessage();
-        String fullStackTrace = getFullStackTrace(throwable);
+        String fullStackTrace = getFullStackTrace(throwable, maxLines);
 
         String[] lines = fullStackTrace.split("\n");
         boolean truncated = lines.length > maxLines;
@@ -66,13 +66,60 @@ public class StackTraceUtils {
     }
 
     /**
-     * Converts a Throwable to its full string representation, including caused-by chain.
+     * Converts a Throwable to a string representation, stopping early after maxLines
+     * to avoid unbounded memory allocation from deeply nested caused-by chains.
      */
-    private static String getFullStackTrace(Throwable throwable) {
+    private static String getFullStackTrace(Throwable throwable, int maxLines) {
         StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
+        PrintWriter pw = new LineLimitedPrintWriter(sw, maxLines + 1);
         throwable.printStackTrace(pw);
         pw.flush();
         return sw.toString();
+    }
+
+    /**
+     * PrintWriter that stops writing after a maximum number of newlines.
+     * Prevents pathological exceptions with deep caused-by chains from
+     * generating multi-megabyte strings before truncation.
+     */
+    private static class LineLimitedPrintWriter extends PrintWriter {
+        private final int maxLines;
+        private int lineCount = 0;
+        private boolean limitReached = false;
+
+        LineLimitedPrintWriter(StringWriter sw, int maxLines) {
+            super(sw);
+            this.maxLines = maxLines;
+        }
+
+        @Override
+        public void println(Object x) {
+            if (limitReached) return;
+            super.print(x);
+            newLine();
+        }
+
+        @Override
+        public void println(String x) {
+            if (limitReached) return;
+            super.print(x);
+            newLine();
+        }
+
+        @Override
+        public void println() {
+            if (limitReached) return;
+            newLine();
+        }
+
+        private void newLine() {
+            lineCount++;
+            if (lineCount >= maxLines) {
+                super.println();
+                limitReached = true;
+            } else {
+                super.println();
+            }
+        }
     }
 }

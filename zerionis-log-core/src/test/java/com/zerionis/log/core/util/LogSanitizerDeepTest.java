@@ -25,21 +25,21 @@ class LogSanitizerDeepTest {
         @Test
         @DisplayName("redacts sensitive fields in flat JSON")
         void redactsFlatJson() {
-            String json = "{\"username\":\"gabo\",\"password\":\"secret123\"}";
+            String json = "{\"username\":\"john\",\"password\":\"secret123\"}";
             String result = sanitizer.sanitizeJsonBody(json);
             assertTrue(result.contains("***REDACTED***"));
-            assertTrue(result.contains("gabo"));
+            assertTrue(result.contains("john"));
             assertFalse(result.contains("secret123"));
         }
 
         @Test
         @DisplayName("redacts nested sensitive fields")
         void redactsNestedJson() {
-            String json = "{\"user\":{\"name\":\"gabo\",\"credentials\":{\"password\":\"secret\",\"token\":\"abc\"}}}";
+            String json = "{\"user\":{\"name\":\"john\",\"credentials\":{\"password\":\"secret\",\"token\":\"abc\"}}}";
             String result = sanitizer.sanitizeJsonBody(json);
             assertFalse(result.contains("secret"));
             assertFalse(result.contains("abc"));
-            assertTrue(result.contains("gabo"));
+            assertTrue(result.contains("john"));
         }
 
         @Test
@@ -100,7 +100,7 @@ class LogSanitizerDeepTest {
         void redactsNestedMaps() {
             Map<String, Object> inner = new HashMap<>();
             inner.put("password", "secret");
-            inner.put("name", "gabo");
+            inner.put("name", "john");
 
             Map<String, Object> outer = new HashMap<>();
             outer.put("user", inner);
@@ -110,7 +110,7 @@ class LogSanitizerDeepTest {
             @SuppressWarnings("unchecked")
             Map<String, Object> resultInner = (Map<String, Object>) result.get("user");
             assertEquals("***REDACTED***", resultInner.get("password"));
-            assertEquals("gabo", resultInner.get("name"));
+            assertEquals("john", resultInner.get("name"));
             assertEquals("ORD-1", result.get("orderId"));
         }
 

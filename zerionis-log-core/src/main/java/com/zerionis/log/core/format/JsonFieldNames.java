@@ -62,7 +62,6 @@ public final class JsonFieldNames {
     // ── Error object fields ──
 
     public static final String ERROR_TYPE = "type";
-    public static final String ERROR_MESSAGE = "message";
     public static final String ERROR_STACK_TRACE = "stackTrace";
     public static final String ERROR_STACK_TRACE_LINES = "stackTraceLines";
     public static final String ERROR_STACK_TRACE_TRUNCATED = "stackTraceTruncated";

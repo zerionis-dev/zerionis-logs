@@ -152,6 +152,45 @@ class ZerionisContextTest {
     }
 
     @Nested
+    @DisplayName("setAll — bulk restore for async")
+    class SetAllTests {
+
+        @Test
+        @DisplayName("restores fields from snapshot")
+        void restoresFromSnapshot() {
+            ZerionisContext.setAll(Map.of("a", "1", "b", "2"));
+            assertEquals("1", ZerionisContext.get("a"));
+            assertEquals("2", ZerionisContext.get("b"));
+            assertEquals(2, ZerionisContext.getAll().size());
+        }
+
+        @Test
+        @DisplayName("clears existing fields before restoring")
+        void clearsBeforeRestore() {
+            ZerionisContext.put("old", "value");
+            ZerionisContext.setAll(Map.of("new", "value"));
+            assertNull(ZerionisContext.get("old"));
+            assertEquals("value", ZerionisContext.get("new"));
+        }
+
+        @Test
+        @DisplayName("handles null snapshot safely")
+        void handlesNull() {
+            ZerionisContext.put("key", "val");
+            ZerionisContext.setAll(null);
+            assertTrue(ZerionisContext.getAll().isEmpty());
+        }
+
+        @Test
+        @DisplayName("handles empty snapshot")
+        void handlesEmpty() {
+            ZerionisContext.put("key", "val");
+            ZerionisContext.setAll(Map.of());
+            assertTrue(ZerionisContext.getAll().isEmpty());
+        }
+    }
+
+    @Nested
     @DisplayName("Input validation integration")
     class ValidationTests {
 

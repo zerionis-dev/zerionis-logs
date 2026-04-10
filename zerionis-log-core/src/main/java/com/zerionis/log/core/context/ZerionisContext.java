@@ -105,6 +105,20 @@ public final class ZerionisContext {
     }
 
     /**
+     * Restores extra fields from a snapshot (e.g. captured in a parent thread).
+     * Used by async decorators to propagate context across thread boundaries.
+     * Clears the current context before restoring.
+     *
+     * @param snapshot the fields to restore (null-safe)
+     */
+    public static void setAll(Map<String, Object> snapshot) {
+        CONTEXT.get().clear();
+        if (snapshot != null && !snapshot.isEmpty()) {
+            CONTEXT.get().putAll(snapshot);
+        }
+    }
+
+    /**
      * Clears all extra fields and releases the ThreadLocal reference.
      * Called automatically by the Servlet Filter at the end of each request
      * to prevent memory leaks in thread pools.

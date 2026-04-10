@@ -27,7 +27,7 @@ Unstructured logs. No correlation. No context. When something breaks in producti
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot3</artifactId>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -76,7 +76,7 @@ Every request. Every error. Automatically.
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot3</artifactId>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -86,7 +86,7 @@ Every request. Every error. Automatically.
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot2</artifactId>
-    <version>1.0.2</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -140,6 +140,9 @@ The extra fields appear in every log event for that request:
 | **Exception capture** | ControllerAdvice + AOP |
 | **Slow method detection** | AOP Aspect with configurable threshold |
 | **Sensitive data redaction** | Auto-detects password, token, secret, apiKey fields |
+| **Distributed tracing** | RestTemplate propagates X-Trace-Id to downstream services |
+| **Async context** | @Async threads keep traceId, requestId, and extra fields |
+| **SQL monitoring** | Slow query and error detection via JDBC proxy |
 
 ---
 
@@ -156,13 +159,14 @@ zerionis:
     slow-method-threshold-ms: 1000      # slow method threshold in ms (default: 1000)
     max-stacktrace-lines: 25            # stack trace lines (default: 25)
     max-extra-fields: 20                # max extra fields per request (default: 20)
-    sanitize-enabled: true              # redact sensitive fields (default: true)
     sanitize-fields:                    # add your own sensitive fields
       - ssn
       - creditScore
     exclude-endpoints:                  # endpoints excluded from logging
       - /actuator/health
       - /favicon.ico
+    sql-enabled: false                  # enable SQL monitoring (default: false)
+    sql-slow-threshold-ms: 500          # slow query threshold in ms (default: 500)
 ```
 
 ---
@@ -176,6 +180,8 @@ zerionis:
 | `METHOD_SLOW` | Method exceeded duration threshold |
 | `METHOD_ERROR` | Exception in intercepted method |
 | `APPLICATION_ERROR` | Unhandled error |
+| `SQL_SLOW` | SQL query exceeded duration threshold |
+| `SQL_ERROR` | SQL query failed with exception |
 | `REQUEST_START` | Request start (disabled by default) |
 
 ---
@@ -191,7 +197,7 @@ zerionis-log includes built-in protection against common logging attack vectors:
 - **Sensitive data exposure** — automatic redaction of password, token, secret, apiKey, cardNumber, cvv
 - **Supply chain** — strict checksums, dependency convergence enforcement, SBOM generation
 
-See [SECURITY.md](docs/SECURITY.md) for the full security specification.
+For implementation details, see [SPEC.md](SPEC.md).
 
 ---
 

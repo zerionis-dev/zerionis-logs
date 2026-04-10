@@ -3,7 +3,6 @@ package com.zerionis.log.spring.aspect;
 import com.zerionis.log.core.annotation.LogIgnore;
 import com.zerionis.log.core.annotation.LogSkip;
 import com.zerionis.log.core.format.JsonFieldNames;
-import com.zerionis.log.core.format.ZerionisLogFormatter;
 import com.zerionis.log.core.model.EventType;
 import com.zerionis.log.core.model.ZerionisLogEvent;
 import com.zerionis.log.core.util.StackTraceUtils;
@@ -36,11 +35,9 @@ public class ZerionisMethodAspect {
 
     private static final Logger log = LoggerFactory.getLogger(ZerionisMethodAspect.class);
 
-    private final ZerionisLogFormatter formatter;
     private final ZerionisProperties properties;
 
-    public ZerionisMethodAspect(ZerionisLogFormatter formatter, ZerionisProperties properties) {
-        this.formatter = formatter;
+    public ZerionisMethodAspect(ZerionisProperties properties) {
         this.properties = properties;
     }
 

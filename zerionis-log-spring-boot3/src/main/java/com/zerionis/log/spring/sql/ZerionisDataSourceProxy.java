@@ -1,6 +1,5 @@
 package com.zerionis.log.spring.sql;
 
-import com.zerionis.log.core.format.ZerionisLogFormatter;
 import com.zerionis.log.spring.config.ZerionisProperties;
 
 import javax.sql.DataSource;
@@ -26,13 +25,10 @@ import java.util.logging.Logger;
 public class ZerionisDataSourceProxy implements DataSource {
 
     private final DataSource delegate;
-    private final ZerionisLogFormatter formatter;
     private final ZerionisProperties properties;
 
-    public ZerionisDataSourceProxy(DataSource delegate, ZerionisLogFormatter formatter,
-                                    ZerionisProperties properties) {
+    public ZerionisDataSourceProxy(DataSource delegate, ZerionisProperties properties) {
         this.delegate = delegate;
-        this.formatter = formatter;
         this.properties = properties;
     }
 
@@ -71,11 +67,11 @@ public class ZerionisDataSourceProxy implements DataSource {
 
                 if (result instanceof PreparedStatement && args != null && args.length > 0 && args[0] instanceof String) {
                     return ZerionisStatementInterceptor.wrap(
-                            (Statement) result, (String) args[0], formatter, properties);
+                            (Statement) result, (String) args[0], properties);
                 }
                 if (result instanceof Statement) {
                     return ZerionisStatementInterceptor.wrap(
-                            (Statement) result, null, formatter, properties);
+                            (Statement) result, null, properties);
                 }
 
                 return result;

@@ -4,7 +4,6 @@ import com.zerionis.log.core.context.ZerionisContext;
 import com.zerionis.log.core.format.JsonFieldNames;
 import com.zerionis.log.core.model.EventType;
 import com.zerionis.log.core.model.ZerionisLogEvent;
-import com.zerionis.log.core.format.ZerionisLogFormatter;
 import com.zerionis.log.core.util.InputValidator;
 import com.zerionis.log.core.util.LogSanitizer;
 import com.zerionis.log.core.util.RequestIdGenerator;
@@ -70,25 +69,25 @@ public class ZerionisRequestFilter implements Filter {
             "application/gzip"
     );
 
-    // Cached reflection handles for Spring Security userId extraction (Fix #10)
+    // Cached reflection handles for Spring Security userId extraction
     private static volatile boolean securityReflectionResolved = false;
     private static Class<?> cachedContextHolderClass;
     private static java.lang.reflect.Method cachedGetContextMethod;
+    private static java.lang.reflect.Method cachedGetAuthenticationMethod;
+    private static java.lang.reflect.Method cachedIsAuthenticatedMethod;
+    private static java.lang.reflect.Method cachedGetNameMethod;
 
     private final TraceIdGenerator traceIdGenerator;
     private final RequestIdGenerator requestIdGenerator;
-    private final ZerionisLogFormatter formatter;
     private final ZerionisProperties properties;
     private final LogSanitizer sanitizer;
 
     public ZerionisRequestFilter(TraceIdGenerator traceIdGenerator,
                                   RequestIdGenerator requestIdGenerator,
-                                  ZerionisLogFormatter formatter,
                                   ZerionisProperties properties,
                                   LogSanitizer sanitizer) {
         this.traceIdGenerator = traceIdGenerator;
         this.requestIdGenerator = requestIdGenerator;
-        this.formatter = formatter;
         this.properties = properties;
         this.sanitizer = sanitizer;
     }
@@ -132,12 +131,6 @@ public class ZerionisRequestFilter implements Filter {
         MDC.put(JsonFieldNames.MDC_PATH, path);
         MDC.put(JsonFieldNames.MDC_HTTP_METHOD, httpMethod);
         MDC.put(JsonFieldNames.MDC_CLIENT_IP, clientIp);
-
-        // Extract userId from Spring Security if available
-        String userId = extractUserId();
-        if (userId != null) {
-            MDC.put(JsonFieldNames.MDC_USER_ID, userId);
-        }
 
         // Wrap request/response for body capture if enabled and content type is allowed
         HttpServletRequest httpRequest = request;
@@ -209,7 +202,17 @@ public class ZerionisRequestFilter implements Filter {
                     }
                 }
                 // Copy body back to the actual response so the client receives it
-                wrappedResponse.copyBodyToResponse();
+                try {
+                    wrappedResponse.copyBodyToResponse();
+                } catch (IOException copyError) {
+                    log.debug("Failed to copy response body: {}", copyError.getMessage());
+                }
+            }
+
+            // Extract userId after filter chain — Spring Security is now populated
+            String userId = extractUserId();
+            if (userId != null) {
+                MDC.put(JsonFieldNames.MDC_USER_ID, userId);
             }
 
             // Determine event type based on whether an error occurred
@@ -389,13 +392,26 @@ public class ZerionisRequestFilter implements Filter {
             Object context = cachedGetContextMethod.invoke(null);
             if (context == null) return null;
 
-            Object authentication = context.getClass().getMethod("getAuthentication").invoke(context);
+            // Lazily cache SecurityContext/Authentication method handles
+            if (cachedGetAuthenticationMethod == null) {
+                synchronized (ZerionisRequestFilter.class) {
+                    if (cachedGetAuthenticationMethod == null) {
+                        cachedGetAuthenticationMethod = context.getClass().getMethod("getAuthentication");
+                        // Get methods from Authentication interface directly
+                        Class<?> authClass = cachedGetAuthenticationMethod.getReturnType();
+                        cachedIsAuthenticatedMethod = authClass.getMethod("isAuthenticated");
+                        cachedGetNameMethod = authClass.getMethod("getName");
+                    }
+                }
+            }
+
+            Object authentication = cachedGetAuthenticationMethod.invoke(context);
             if (authentication == null) return null;
 
-            Object isAuthenticated = authentication.getClass().getMethod("isAuthenticated").invoke(authentication);
+            Object isAuthenticated = cachedIsAuthenticatedMethod.invoke(authentication);
             if (!Boolean.TRUE.equals(isAuthenticated)) return null;
 
-            Object principal = authentication.getClass().getMethod("getName").invoke(authentication);
+            Object principal = cachedGetNameMethod.invoke(authentication);
             if (principal == null || "anonymousUser".equals(principal.toString())) return null;
 
             return principal.toString();

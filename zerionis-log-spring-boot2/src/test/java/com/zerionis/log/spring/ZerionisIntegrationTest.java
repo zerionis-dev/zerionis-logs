@@ -10,23 +10,34 @@ import com.zerionis.log.core.util.LogSanitizer;
 import com.zerionis.log.core.util.RequestIdGenerator;
 import com.zerionis.log.core.util.TraceIdGenerator;
 import com.zerionis.log.spring.aspect.ZerionisMethodAspect;
+import com.zerionis.log.spring.async.ZerionisTaskDecorator;
 import com.zerionis.log.spring.config.ZerionisAutoConfiguration;
 import com.zerionis.log.spring.config.ZerionisProperties;
 import com.zerionis.log.spring.filter.ZerionisRequestFilter;
 import com.zerionis.log.spring.handler.ZerionisExceptionHandler;
+import com.zerionis.log.spring.http.ZerionisRestTemplateInterceptor;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -325,6 +336,168 @@ class ZerionisIntegrationTest {
             mockMvc.perform(get("/api/hello"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("hello"));
+        }
+    }
+
+    // -- Trace Propagation Tests --
+
+    @Nested
+    @DisplayName("Trace propagation")
+    class TracePropagationTests {
+
+        @Test
+        @DisplayName("RestTemplateCustomizer is registered")
+        void restTemplateCustomizerRegistered() {
+            assertNotNull(context.getBean("zerionisRestTemplateCustomizer"),
+                    "RestTemplateCustomizer should be auto-configured");
+        }
+
+        @Test
+        @DisplayName("RestTemplate interceptor adds X-Trace-Id header")
+        void interceptorAddsTraceIdHeader() {
+            ZerionisRestTemplateInterceptor interceptor = new ZerionisRestTemplateInterceptor();
+
+            MDC.put("zerionis.traceId", "test-trace-123");
+            MDC.put("zerionis.requestId", "req-abc");
+            try {
+                MockClientHttpRequest request = new MockClientHttpRequest();
+                try {
+                    interceptor.intercept(request, new byte[0], (req, body) -> null);
+                } catch (Exception ignored) {
+                }
+
+                assertEquals("test-trace-123", request.getHeaders().getFirst("X-Trace-Id"));
+                assertEquals("req-abc", request.getHeaders().getFirst("X-Request-Id"));
+            } finally {
+                MDC.clear();
+            }
+        }
+
+        @Test
+        @DisplayName("Interceptor does not overwrite existing headers")
+        void interceptorDoesNotOverwrite() {
+            ZerionisRestTemplateInterceptor interceptor = new ZerionisRestTemplateInterceptor();
+
+            MDC.put("zerionis.traceId", "new-trace");
+            try {
+                MockClientHttpRequest request = new MockClientHttpRequest();
+                request.getHeaders().set("X-Trace-Id", "original-trace");
+
+                try {
+                    interceptor.intercept(request, new byte[0], (req, body) -> null);
+                } catch (Exception ignored) {
+                }
+
+                assertEquals("original-trace", request.getHeaders().getFirst("X-Trace-Id"),
+                        "Should not overwrite existing X-Trace-Id");
+            } finally {
+                MDC.clear();
+            }
+        }
+
+        @Test
+        @DisplayName("RestTemplate beans get interceptor applied")
+        void restTemplateBeanGetsInterceptor() {
+            RestTemplate restTemplate = new RestTemplate();
+            context.getBean("zerionisRestTemplateCustomizer",
+                    org.springframework.boot.web.client.RestTemplateCustomizer.class)
+                    .customize(restTemplate);
+
+            List<ClientHttpRequestInterceptor> interceptors = restTemplate.getInterceptors();
+            assertTrue(interceptors.stream().anyMatch(i -> i instanceof ZerionisRestTemplateInterceptor),
+                    "RestTemplate should have ZerionisRestTemplateInterceptor");
+        }
+    }
+
+    // -- Async Context Propagation Tests --
+
+    @Nested
+    @DisplayName("Async context propagation")
+    class AsyncContextTests {
+
+        @Test
+        @DisplayName("TaskExecutorCustomizer is registered")
+        void taskExecutorCustomizerRegistered() {
+            assertNotNull(context.getBean("zerionisTaskExecutorCustomizer"),
+                    "TaskExecutorCustomizer should be auto-configured");
+        }
+
+        @Test
+        @DisplayName("TaskDecorator propagates MDC to async thread")
+        void decoratorPropagatesMdc() throws Exception {
+            ZerionisTaskDecorator decorator = new ZerionisTaskDecorator();
+
+            MDC.put("zerionis.traceId", "async-trace-123");
+            MDC.put("zerionis.requestId", "req-async");
+
+            AtomicReference<String> capturedTraceId = new AtomicReference<>();
+            AtomicReference<String> capturedRequestId = new AtomicReference<>();
+            CountDownLatch latch = new CountDownLatch(1);
+
+            Runnable decorated = decorator.decorate(() -> {
+                capturedTraceId.set(MDC.get("zerionis.traceId"));
+                capturedRequestId.set(MDC.get("zerionis.requestId"));
+                latch.countDown();
+            });
+
+            MDC.clear();
+
+            Thread asyncThread = new Thread(decorated);
+            asyncThread.start();
+            latch.await();
+
+            assertEquals("async-trace-123", capturedTraceId.get());
+            assertEquals("req-async", capturedRequestId.get());
+        }
+
+        @Test
+        @DisplayName("TaskDecorator propagates ZerionisContext to async thread")
+        void decoratorPropagatesContext() throws Exception {
+            ZerionisTaskDecorator decorator = new ZerionisTaskDecorator();
+
+            com.zerionis.log.core.context.ZerionisContext.put("orderId", "ORD-999");
+
+            AtomicReference<Object> capturedOrderId = new AtomicReference<>();
+            CountDownLatch latch = new CountDownLatch(1);
+
+            Runnable decorated = decorator.decorate(() -> {
+                capturedOrderId.set(com.zerionis.log.core.context.ZerionisContext.get("orderId"));
+                latch.countDown();
+            });
+
+            com.zerionis.log.core.context.ZerionisContext.clear();
+
+            Thread asyncThread = new Thread(decorated);
+            asyncThread.start();
+            latch.await();
+
+            assertEquals("ORD-999", capturedOrderId.get());
+        }
+
+        @Test
+        @DisplayName("TaskDecorator cleans up after execution")
+        void decoratorCleansUp() throws Exception {
+            ZerionisTaskDecorator decorator = new ZerionisTaskDecorator();
+
+            MDC.put("zerionis.traceId", "cleanup-trace");
+
+            AtomicReference<String> traceAfterRun = new AtomicReference<>();
+            CountDownLatch latch = new CountDownLatch(1);
+
+            Runnable decorated = decorator.decorate(() -> {});
+
+            Runnable wrapper = () -> {
+                decorated.run();
+                traceAfterRun.set(MDC.get("zerionis.traceId"));
+                latch.countDown();
+            };
+
+            MDC.clear();
+            Thread asyncThread = new Thread(wrapper);
+            asyncThread.start();
+            latch.await();
+
+            assertNull(traceAfterRun.get(), "MDC should be cleared after async execution");
         }
     }
 

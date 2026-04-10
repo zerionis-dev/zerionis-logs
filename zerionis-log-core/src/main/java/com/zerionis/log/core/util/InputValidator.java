@@ -232,8 +232,8 @@ public final class InputValidator {
         StringBuilder sb = new StringBuilder(value.length());
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
-            // Allow printable chars + tab (0x09), remove other control chars
-            if (c >= 0x20 || c == 0x09) {
+            // Allow printable chars + tab (0x09), remove control chars including DEL (0x7F)
+            if ((c >= 0x20 && c != 0x7F) || c == 0x09) {
                 sb.append(c);
             }
         }

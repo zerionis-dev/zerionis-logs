@@ -1,7 +1,6 @@
 package com.zerionis.log.spring.sql;
 
 import com.zerionis.log.core.format.JsonFieldNames;
-import com.zerionis.log.core.format.ZerionisLogFormatter;
 import com.zerionis.log.core.model.EventType;
 import com.zerionis.log.core.model.ZerionisLogEvent;
 import com.zerionis.log.core.util.InputValidator;
@@ -45,15 +44,12 @@ class ZerionisStatementInterceptor implements InvocationHandler {
 
     private final Statement target;
     private final String sql;
-    private final ZerionisLogFormatter formatter;
     private final ZerionisProperties properties;
 
     ZerionisStatementInterceptor(Statement target, String sql,
-                                  ZerionisLogFormatter formatter,
                                   ZerionisProperties properties) {
         this.target = target;
         this.sql = sql;
-        this.formatter = formatter;
         this.properties = properties;
     }
 
@@ -142,12 +138,11 @@ class ZerionisStatementInterceptor implements InvocationHandler {
     /**
      * Wraps a Statement in a monitoring proxy.
      */
-    static Statement wrap(Statement statement, String sql,
-                          ZerionisLogFormatter formatter, ZerionisProperties properties) {
+    static Statement wrap(Statement statement, String sql, ZerionisProperties properties) {
         return (Statement) Proxy.newProxyInstance(
                 statement.getClass().getClassLoader(),
                 statement.getClass().getInterfaces(),
-                new ZerionisStatementInterceptor(statement, sql, formatter, properties)
+                new ZerionisStatementInterceptor(statement, sql, properties)
         );
     }
 }

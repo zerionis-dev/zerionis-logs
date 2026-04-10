@@ -7,8 +7,10 @@ import com.zerionis.log.core.util.LogSanitizer;
 import com.zerionis.log.core.util.RequestIdGenerator;
 import com.zerionis.log.core.util.TraceIdGenerator;
 import com.zerionis.log.spring.aspect.ZerionisMethodAspect;
+import com.zerionis.log.spring.async.ZerionisTaskDecorator;
 import com.zerionis.log.spring.filter.ZerionisRequestFilter;
 import com.zerionis.log.spring.handler.ZerionisExceptionHandler;
+import com.zerionis.log.spring.http.ZerionisRestTemplateInterceptor;
 import com.zerionis.log.spring.sql.ZerionisDataSourcePostProcessor;
 
 import ch.qos.logback.classic.Logger;
@@ -98,11 +100,10 @@ public class ZerionisAutoConfiguration {
     public FilterRegistrationBean<ZerionisRequestFilter> zerionisRequestFilter(
             TraceIdGenerator traceIdGenerator,
             RequestIdGenerator requestIdGenerator,
-            ZerionisLogFormatter formatter,
             LogSanitizer sanitizer) {
 
         ZerionisRequestFilter filter = new ZerionisRequestFilter(
-                traceIdGenerator, requestIdGenerator, formatter, properties, sanitizer);
+                traceIdGenerator, requestIdGenerator, properties, sanitizer);
 
         FilterRegistrationBean<ZerionisRequestFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(filter);
@@ -114,8 +115,8 @@ public class ZerionisAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass(name = "org.aspectj.lang.ProceedingJoinPoint")
-    public ZerionisMethodAspect zerionisMethodAspect(ZerionisLogFormatter formatter) {
-        return new ZerionisMethodAspect(formatter, properties);
+    public ZerionisMethodAspect zerionisMethodAspect() {
+        return new ZerionisMethodAspect(properties);
     }
 
     @Bean
@@ -128,8 +129,22 @@ public class ZerionisAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(name = "zerionis.log.sql-enabled", havingValue = "true")
-    public ZerionisDataSourcePostProcessor zerionisDataSourcePostProcessor(ZerionisLogFormatter formatter) {
-        return new ZerionisDataSourcePostProcessor(formatter, properties);
+    public ZerionisDataSourcePostProcessor zerionisDataSourcePostProcessor() {
+        return new ZerionisDataSourcePostProcessor(properties);
+    }
+
+    /** Propagates X-Trace-Id and X-Request-Id to downstream services via RestTemplate. */
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.web.client.RestTemplate")
+    public org.springframework.boot.web.client.RestTemplateCustomizer zerionisRestTemplateCustomizer() {
+        return restTemplate -> restTemplate.getInterceptors().add(new ZerionisRestTemplateInterceptor());
+    }
+
+    /** Propagates MDC and ZerionisContext to @Async threads. */
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor")
+    public org.springframework.boot.task.TaskExecutorCustomizer zerionisTaskExecutorCustomizer() {
+        return executor -> executor.setTaskDecorator(new ZerionisTaskDecorator());
     }
 
     private void configureLogbackJson() {

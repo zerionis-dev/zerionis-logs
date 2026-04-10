@@ -1,6 +1,5 @@
 package com.zerionis.log.spring.sql;
 
-import com.zerionis.log.core.format.ZerionisLogFormatter;
 import com.zerionis.log.spring.config.ZerionisProperties;
 
 import org.springframework.beans.BeansException;
@@ -15,19 +14,16 @@ import javax.sql.DataSource;
  */
 public class ZerionisDataSourcePostProcessor implements BeanPostProcessor {
 
-    private final ZerionisLogFormatter formatter;
     private final ZerionisProperties properties;
 
-    public ZerionisDataSourcePostProcessor(ZerionisLogFormatter formatter,
-                                            ZerionisProperties properties) {
-        this.formatter = formatter;
+    public ZerionisDataSourcePostProcessor(ZerionisProperties properties) {
         this.properties = properties;
     }
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         if (bean instanceof DataSource && !(bean instanceof ZerionisDataSourceProxy)) {
-            return new ZerionisDataSourceProxy((DataSource) bean, formatter, properties);
+            return new ZerionisDataSourceProxy((DataSource) bean, properties);
         }
         return bean;
     }
