@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2026-04-09
+## [1.1.1] - 2026-04-09
 
 ### Added
 - Distributed trace propagation — RestTemplate interceptor automatically injects `X-Trace-Id` and `X-Request-Id` headers on outbound HTTP calls
@@ -79,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Supply chain hardening: strict checksums, CycloneDX SBOM, reproducible builds
 - Published to Maven Central under `com.zerionis`
 
-[1.1.0]: https://github.com/zerionis-dev/zerionis-logs/compare/v1.0.3...v1.1.0
+[1.1.1]: https://github.com/zerionis-dev/zerionis-logs/compare/v1.0.3...v1.1.1
 [1.0.3]: https://github.com/zerionis-dev/zerionis-logs/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/zerionis-dev/zerionis-logs/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/zerionis-dev/zerionis-logs/compare/v1.0.0...v1.0.1
