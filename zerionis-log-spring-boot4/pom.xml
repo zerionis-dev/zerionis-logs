@@ -28,23 +28,14 @@
         <maven.compiler.target>25</maven.compiler.target>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <!--
-                Spring Boot 4.0.5 BOM.
-                Provides correct versions for spring-web (with jakarta.servlet),
-                spring-aop, and all Boot 4 dependencies.
-            -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot4.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-        </dependencies>
-    </dependencyManagement>
+    <!--
+        No local dependencyManagement needed.
+        The SB4 BOM (spring-boot-dependencies:4.0.5) is already imported
+        in the parent aggregator POM's dependencyManagement. Re-importing
+        it here breaks Maven reactor resolution: the local BOM import
+        triggers dependency resolution before the reactor builds core,
+        causing central lookups to fail for unpublished zerionis-log-core.
+    -->
 
     <dependencies>
         <!--
