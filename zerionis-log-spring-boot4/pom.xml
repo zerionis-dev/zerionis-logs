@@ -49,6 +49,23 @@
         </dependency>
 
         <!--
+            Spring Boot 4 uses Jackson 3.x (tools.jackson.*) instead of Jackson 2.x (com.fasterxml.jackson.*).
+            zerionis-log-core was compiled against the com.fasterxml.jackson.* API which SB4 does NOT provide.
+            Jackson 2.x and 3.x use different package namespaces so they coexist safely on the classpath.
+            This ensures com.fasterxml.jackson.databind.* classes are available at runtime.
+        -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <!--
             scope=provided: the consuming app already brings this dependency.
             Includes jakarta.servlet (NOT javax) — this is the key difference with boot2.
         -->
