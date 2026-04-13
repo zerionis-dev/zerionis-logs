@@ -35,7 +35,7 @@ public class ZerionisRestTemplateInterceptor implements ClientHttpRequestInterce
         }
 
         String requestId = MDC.get(JsonFieldNames.MDC_REQUEST_ID);
-        if (requestId != null && !request.getHeaders().containsKey(REQUEST_ID_HEADER)) {
+        if (requestId != null && !request.getHeaders().containsHeader(REQUEST_ID_HEADER)) {
             request.getHeaders().set(REQUEST_ID_HEADER, requestId);
         }
 
