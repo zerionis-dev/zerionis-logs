@@ -19,13 +19,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Pre-install core
-        run: |
-          LOCAL_REPO=$(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout 2>/dev/null)
-          echo "Maven local repo: $LOCAL_REPO"
-          mvn install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true
-          echo "Installed artifacts:"
-          ls "$LOCAL_REPO/com/zerionis/zerionis-log-core/" 2>/dev/null || echo "NOT FOUND"
-          ls "$LOCAL_REPO/com/zerionis/zerionis-log-core/1.2.0/" 2>/dev/null || echo "1.2.0 dir NOT FOUND"
+        run: mvn install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true
 
       - name: Build and test
         run: mvn verify -Dcyclonedx.skip=true -Dossindex.skip=true
