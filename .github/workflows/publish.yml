@@ -49,7 +49,7 @@ jobs:
         run: mvn install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true
 
       - name: Build and publish to Maven Central
-        run: mvn deploy -Pcentral -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}"
+        run: mvn deploy -Pcentral -Dmaven.test.skip=true -Dcyclonedx.skip=true -Dossindex.skip=true -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}"
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
