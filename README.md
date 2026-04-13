@@ -27,7 +27,7 @@ Unstructured logs. No correlation. No context. When something breaks in producti
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot3</artifactId>
-    <version>1.1.2</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -70,13 +70,23 @@ Every request. Every error. Automatically.
 
 ### 1. Add the dependency
 
+**Spring Boot 4.x** (Java 21+):
+
+```xml
+<dependency>
+    <groupId>com.zerionis</groupId>
+    <artifactId>zerionis-log-spring-boot4</artifactId>
+    <version>1.2.0</version>
+</dependency>
+```
+
 **Spring Boot 3.x** (Java 17+):
 
 ```xml
 <dependency>
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log-spring-boot3</artifactId>
-    <version>1.1.2</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
@@ -212,17 +222,19 @@ zerionis-log/
 │   └── format/                     → JSON Layout, Formatter, Field names
 │
 ├── zerionis-log-spring-boot2/      → Starter for Spring Boot 2.7.x (javax.servlet)
-└── zerionis-log-spring-boot3/      → Starter for Spring Boot 3.x (jakarta.servlet)
+├── zerionis-log-spring-boot3/      → Starter for Spring Boot 3.x (jakarta.servlet)
+└── zerionis-log-spring-boot4/      → Starter for Spring Boot 4.x (jakarta.servlet, Java 21+)
 ```
 
 ---
 
 ## Compatibility
 
-| Artifact | Spring Boot | Java |
-|----------|------------|------|
-| `zerionis-log-spring-boot2` | 2.7.x | 11+ |
-| `zerionis-log-spring-boot3` | 3.x | 17+ |
+| Artifact | Spring Boot | Java | Latest |
+|----------|------------|------|--------|
+| `zerionis-log-spring-boot2` | 2.7.x | 11+ | 1.1.2 |
+| `zerionis-log-spring-boot3` | 3.x | 17+ | 1.2.0 |
+| `zerionis-log-spring-boot4` | 4.x | 21+ | 1.2.0 |
 
 ---
 

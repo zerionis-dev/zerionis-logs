@@ -18,5 +18,8 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
 
+      - name: Clear cached Zerionis artifacts
+        run: rm -rf ~/.m2/repository/com/zerionis
+
       - name: Build and test
         run: mvn verify
