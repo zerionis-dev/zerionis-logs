@@ -18,8 +18,8 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
 
-      - name: Clear cached Zerionis artifacts
-        run: rm -rf ~/.m2/repository/com/zerionis
+      - name: Pre-install core module
+        run: mvn install -pl :zerionis-log-core -DskipTests
 
       - name: Build and test
         run: mvn verify
