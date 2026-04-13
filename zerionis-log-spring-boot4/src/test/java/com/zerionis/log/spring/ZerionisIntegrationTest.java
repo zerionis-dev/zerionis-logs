@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationContext;
@@ -32,7 +31,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.List;
 import java.util.Map;
@@ -48,10 +49,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Verifies that filter, aspect, exception handler, and JSON layout work end-to-end.
  */
 @SpringBootTest(classes = {TestApplication.class, TestController.class, IgnoredController.class, TestSecurityConfig.class})
-@AutoConfigureMockMvc
 class ZerionisIntegrationTest {
 
     @Autowired
+    private WebApplicationContext webApplicationContext;
+
     private MockMvc mockMvc;
 
     @Autowired
@@ -63,6 +65,9 @@ class ZerionisIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // MockMvc manual setup (Spring Boot 4 removed @AutoConfigureMockMvc from web.servlet package)
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+
         // Capture log output from the filter and aspect loggers
         logCapture = new ListAppender<>();
         logCapture.start();
@@ -346,13 +351,6 @@ class ZerionisIntegrationTest {
     class TracePropagationTests {
 
         @Test
-        @DisplayName("RestTemplateCustomizer is registered")
-        void restTemplateCustomizerRegistered() {
-            assertNotNull(context.getBean("zerionisRestTemplateCustomizer"),
-                    "RestTemplateCustomizer should be auto-configured");
-        }
-
-        @Test
         @DisplayName("RestTemplate interceptor adds X-Trace-Id header")
         void interceptorAddsTraceIdHeader() {
             ZerionisRestTemplateInterceptor interceptor = new ZerionisRestTemplateInterceptor();
@@ -397,19 +395,8 @@ class ZerionisIntegrationTest {
             }
         }
 
-        @Test
-        @DisplayName("RestTemplate beans get interceptor applied")
-        void restTemplateBeanGetsInterceptor() {
-            RestTemplate restTemplate = new RestTemplate();
-            // Apply the customizer
-            context.getBean("zerionisRestTemplateCustomizer",
-                    org.springframework.boot.web.client.RestTemplateCustomizer.class)
-                    .customize(restTemplate);
-
-            List<ClientHttpRequestInterceptor> interceptors = restTemplate.getInterceptors();
-            assertTrue(interceptors.stream().anyMatch(i -> i instanceof ZerionisRestTemplateInterceptor),
-                    "RestTemplate should have ZerionisRestTemplateInterceptor");
-        }
+        // Note: RestTemplateCustomizer was removed in Spring Boot 4 (RestTemplate deprecated in Spring 7).
+        // No test for RestTemplate interceptor registration in the SB4 module.
     }
 
     // ── Async Context Propagation Tests ──
