@@ -54,15 +54,16 @@
             Jackson 2.x and 3.x use different package namespaces so they coexist safely on the classpath.
             This ensures com.fasterxml.jackson.databind.* classes are available at runtime.
         -->
+        <!--
+            Versions intentionally omitted: managed by spring-boot-dependencies BOM (2.21.x in SB4).
+        -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
 
         <!--
