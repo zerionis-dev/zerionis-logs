@@ -68,7 +68,7 @@ class ZerionisIntegrationTest {
         // Explicitly add ZerionisRequestFilter: webAppContextSetup does NOT apply
         // FilterRegistrationBean-registered filters automatically in Spring MVC test.
         @SuppressWarnings("unchecked")
-        ZerionisRequestFilter filter = context
+        ZerionisRequestFilter filter = (ZerionisRequestFilter) context
                 .getBean("zerionisRequestFilter", FilterRegistrationBean.class)
                 .getFilter();
 
