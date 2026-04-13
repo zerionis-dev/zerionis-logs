@@ -1,8 +1,8 @@
 # zerionis-log
 
-[![Maven Central](https://img.shields.io/maven-central/v/com.zerionis/zerionis-log-spring-boot3)](https://central.sonatype.com/artifact/com.zerionis/zerionis-log-spring-boot3)
 [![CI](https://github.com/zerionis-dev/zerionis-logs/actions/workflows/ci.yml/badge.svg)](https://github.com/zerionis-dev/zerionis-logs/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-v1.2.0-blue)](https://github.com/orgs/zerionis-dev/packages)
 
 **Structured JSON logging for Spring Boot. Zero code changes.**
 

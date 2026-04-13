@@ -1,4 +1,4 @@
-name: Publish to Maven Central
+name: Publish to GitHub Packages
 
 on:
   push:
@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -19,46 +20,15 @@ jobs:
         with:
           java-version: '25'
           distribution: 'temurin'
-
-      - name: Import GPG key
-        run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          server-id: github
+          settings-path: ${{ github.workspace }}
 
       - name: Set release version from tag
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
 
-      - name: Create settings.xml
-        run: |
-          cat > $HOME/.m2/settings.xml << 'SETTINGS'
-          <settings>
-            <servers>
-              <server>
-                <id>central</id>
-                <username>${env.SONATYPE_USERNAME}</username>
-                <password>${env.SONATYPE_PASSWORD}</password>
-              </server>
-            </servers>
-            <profiles>
-              <profile>
-                <id>gpg</id>
-                <properties>
-                  <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
-                </properties>
-              </profile>
-            </profiles>
-            <activeProfiles>
-              <activeProfile>gpg</activeProfile>
-            </activeProfiles>
-          </settings>
-          SETTINGS
-
       - name: Build and publish
-        run: mvn clean deploy -Pcentral -DskipTests -Dossindex.skip=true
+        run: mvn deploy -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true --settings $GITHUB_WORKSPACE/settings.xml
         env:
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
