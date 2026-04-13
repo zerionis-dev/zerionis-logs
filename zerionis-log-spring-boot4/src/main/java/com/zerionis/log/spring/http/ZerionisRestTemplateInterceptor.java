@@ -30,7 +30,7 @@ public class ZerionisRestTemplateInterceptor implements ClientHttpRequestInterce
     public ClientHttpResponse intercept(HttpRequest request, byte[] body,
                                          ClientHttpRequestExecution execution) throws IOException {
         String traceId = MDC.get(JsonFieldNames.MDC_TRACE_ID);
-        if (traceId != null && !request.getHeaders().containsKey(TRACE_ID_HEADER)) {
+        if (traceId != null && !request.getHeaders().containsHeader(TRACE_ID_HEADER)) {
             request.getHeaders().set(TRACE_ID_HEADER, traceId);
         }
 

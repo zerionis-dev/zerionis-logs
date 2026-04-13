@@ -144,7 +144,7 @@ public class ZerionisRequestFilter implements Filter {
 
         if (captureRequestBody) {
             org.springframework.web.util.ContentCachingRequestWrapper wrappedRequest =
-                    new org.springframework.web.util.ContentCachingRequestWrapper(httpRequest);
+                    new org.springframework.web.util.ContentCachingRequestWrapper(httpRequest, 10 * 1024);
             httpRequest = wrappedRequest;
         }
 

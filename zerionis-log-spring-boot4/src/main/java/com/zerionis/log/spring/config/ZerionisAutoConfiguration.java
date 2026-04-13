@@ -10,7 +10,6 @@ import com.zerionis.log.spring.aspect.ZerionisMethodAspect;
 import com.zerionis.log.spring.async.ZerionisTaskDecorator;
 import com.zerionis.log.spring.filter.ZerionisRequestFilter;
 import com.zerionis.log.spring.handler.ZerionisExceptionHandler;
-import com.zerionis.log.spring.http.ZerionisRestTemplateInterceptor;
 import com.zerionis.log.spring.sql.ZerionisDataSourcePostProcessor;
 
 import ch.qos.logback.classic.Logger;
@@ -154,17 +153,10 @@ public class ZerionisAutoConfiguration {
         return new ZerionisDataSourcePostProcessor(properties);
     }
 
-    /** Propagates X-Trace-Id and X-Request-Id to downstream services via RestTemplate. */
-    @Bean
-    @ConditionalOnClass(name = "org.springframework.web.client.RestTemplate")
-    public org.springframework.boot.web.client.RestTemplateCustomizer zerionisRestTemplateCustomizer() {
-        return restTemplate -> restTemplate.getInterceptors().add(new ZerionisRestTemplateInterceptor());
-    }
-
     /** Propagates MDC and ZerionisContext to @Async threads. */
     @Bean
     @ConditionalOnClass(name = "org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor")
-    public org.springframework.boot.task.TaskExecutorCustomizer zerionisTaskExecutorCustomizer() {
+    public org.springframework.boot.task.ThreadPoolTaskExecutorCustomizer zerionisTaskExecutorCustomizer() {
         return executor -> executor.setTaskDecorator(new ZerionisTaskDecorator());
     }
 
