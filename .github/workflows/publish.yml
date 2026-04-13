@@ -28,6 +28,11 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
 
+      - name: Pre-install core
+        run: mvn install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true --settings $GITHUB_WORKSPACE/settings.xml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and publish
         run: mvn deploy -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true --settings $GITHUB_WORKSPACE/settings.xml
         env:

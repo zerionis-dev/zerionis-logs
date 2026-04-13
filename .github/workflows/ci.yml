@@ -18,5 +18,8 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
 
+      - name: Pre-install core
+        run: mvn install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true
+
       - name: Build and test
         run: mvn verify -Dcyclonedx.skip=true -Dossindex.skip=true
