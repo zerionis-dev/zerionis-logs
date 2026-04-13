@@ -1,4 +1,4 @@
-name: Publish to GitHub Packages
+name: Publish to Maven Central
 
 on:
   push:
@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -20,8 +19,26 @@ jobs:
         with:
           java-version: '25'
           distribution: 'temurin'
-          server-id: github
-          settings-path: ${{ github.workspace }}
+
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys
+
+      - name: Configure Maven settings
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'EOF'
+          <settings>
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${env.SONATYPE_USERNAME}</username>
+                <password>${env.SONATYPE_PASSWORD}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF
 
       - name: Set release version from tag
         run: |
@@ -29,11 +46,10 @@ jobs:
           mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
 
       - name: Pre-install core
-        run: mvn install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true --settings $GITHUB_WORKSPACE/settings.xml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mvn install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true
 
-      - name: Build and publish
-        run: mvn deploy -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true --settings $GITHUB_WORKSPACE/settings.xml
+      - name: Build and publish to Maven Central
+        run: mvn deploy -Pcentral -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
