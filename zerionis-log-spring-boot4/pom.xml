@@ -69,10 +69,11 @@
 
         <!--
             scope=provided: AOP for intercepting controllers with @Aspect.
+            Note: renamed from spring-boot-starter-aop in Spring Boot 4.0.
         -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
             <scope>provided</scope>
         </dependency>
 
