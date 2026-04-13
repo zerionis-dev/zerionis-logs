@@ -65,8 +65,16 @@ class ZerionisIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // MockMvc manual setup (Spring Boot 4 removed @AutoConfigureMockMvc from web.servlet package)
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        // Explicitly add ZerionisRequestFilter: webAppContextSetup does NOT apply
+        // FilterRegistrationBean-registered filters automatically in Spring MVC test.
+        @SuppressWarnings("unchecked")
+        ZerionisRequestFilter filter = context
+                .getBean("zerionisRequestFilter", FilterRegistrationBean.class)
+                .getFilter();
+
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .addFilter(filter, "/*")
+                .build();
 
         // Capture log output from the filter and aspect loggers
         logCapture = new ListAppender<>();
