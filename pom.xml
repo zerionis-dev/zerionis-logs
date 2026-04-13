@@ -7,7 +7,7 @@
     <!-- Parent aggregator POM -->
     <groupId>com.zerionis</groupId>
     <artifactId>zerionis-log</artifactId>
-    <version>1.1.2</version>
+    <version>1.2.0</version>
 
     <!-- Aggregator only — does not produce a JAR -->
     <packaging>pom</packaging>
@@ -42,6 +42,7 @@
         <module>zerionis-log-core</module>          <!-- Pure logic, no Spring -->
         <module>zerionis-log-spring-boot2</module>   <!-- Starter for Spring Boot 2.7.x -->
         <module>zerionis-log-spring-boot3</module>   <!-- Starter for Spring Boot 3.x -->
+        <module>zerionis-log-spring-boot4</module>   <!-- Starter for Spring Boot 4.x -->
     </modules>
 
     <properties>
@@ -58,6 +59,7 @@
         <jackson.version>2.15.3</jackson.version>
         <spring-boot2.version>2.7.18</spring-boot2.version>
         <spring-boot3.version>3.2.5</spring-boot3.version>
+        <spring-boot4.version>4.0.5</spring-boot4.version>
 
         <!-- Reproducible builds: strips timestamps from JAR manifests -->
         <project.build.outputTimestamp>2026-03-13T05:26:17Z</project.build.outputTimestamp>
@@ -77,6 +79,18 @@
                 <groupId>com.zerionis</groupId>
                 <artifactId>zerionis-log-core</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <!--
+                Spring Boot 4 BOM — imported by zerionis-log-spring-boot4 module.
+                Declared here so the version property is centralised in the root POM.
+            -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot4.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <!--

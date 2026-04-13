@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        Parent is our own aggregator POM, NOT spring-boot-starter-parent.
+        This lets us control the multi-module structure.
+        Spring Boot is imported as a BOM in dependencyManagement.
+    -->
+    <parent>
+        <groupId>com.zerionis</groupId>
+        <artifactId>zerionis-log</artifactId>
+        <version>1.2.0</version>
+    </parent>
+
+    <artifactId>zerionis-log-spring-boot4</artifactId>
+    <name>Zerionis Log Spring Boot 4</name>
+    <description>Zerionis Log starter for Spring Boot 4.x</description>
+
+    <properties>
+        <!--
+            Spring Boot 4 requires Java 25 minimum.
+            Overrides the Java 11 default from parent POM for this module only.
+        -->
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--
+                Spring Boot 4.0.5 BOM.
+                Provides correct versions for spring-web (with jakarta.servlet),
+                spring-aop, and all Boot 4 dependencies.
+            -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot4.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!--
+            Core module. Its SLF4J/Logback deps are scope=provided so they are
+            NOT transitive — no exclusions needed. Boot 4 gets its own versions
+            from the imported BOM via spring-boot-starter-web.
+        -->
+        <dependency>
+            <groupId>com.zerionis</groupId>
+            <artifactId>zerionis-log-core</artifactId>
+        </dependency>
+
+        <!--
+            scope=provided: the consuming app already brings this dependency.
+            Includes jakarta.servlet (NOT javax) — this is the key difference with boot2.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            scope=provided: AOP for intercepting controllers with @Aspect.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            Optional: for extracting userId from SecurityContext.
+            Works without it — extraction uses reflection with graceful fallback.
+            Consumers only get this if they explicitly add spring-boot-starter-security.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
+            For auto-configuration: @Configuration, @ConditionalOnClass, etc.
+            In Boot 4, registered via META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+            (same mechanism as Boot 3).
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            Generates metadata for IDE autocompletion.
+            The zerionis.log.* properties will appear in application.yml with suggestions.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <!--
+        Enforcer runs normally here. No version conflicts because:
+        - Core's SLF4J/Logback are scope=provided (not transitive)
+        - This module gets SLF4J 2.x / Logback 1.5.x from Boot 4 BOM
+    -->
+</project>
