@@ -6,7 +6,27 @@ on:
       - 'v*'
 
 jobs:
+  # publish depende de este job porque una etiqueta se puede poner sobre
+  # cualquier commit, incluido uno que nunca paso por el CI de la rama.
+  secretos:
+    name: Cero secretos en el repositorio
+    runs-on: ubuntu-latest
+    env:
+      # renovate: datasource=github-releases depName=gitleaks/gitleaks
+      GITLEAKS_VERSION: 8.30.1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks sobre todo el historico
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks git --redact --no-banner --verbose .
+
   publish:
+    needs: [secretos]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -45,11 +65,21 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
 
+      # El SBOM se genera en el deploy de abajo, no en este preinstall desechable.
       - name: Pre-install core
-        run: mvn install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true
+        run: mvn -B install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true
 
+      # Sin -Dmaven.test.skip: hasta el 2026-07-28 esta bandera dejaba salir a
+      # Maven Central sin correr ninguna de las 196 pruebas, en el unico artefacto
+      # del ecosistema que consume alguien de fuera. La puso el commit c031822
+      # para evitar una falla de compilacion de tests que ya no ocurre: la ruta
+      # completa (versions:set mas reactor con pruebas) se reprodujo local el
+      # 2026-07-28 y termina en BUILD SUCCESS.
+      #
+      # Sin -Dcyclonedx.skip: asi el bom.json viaja con el artefacto publicado,
+      # que es lo que README.md:208 promete.
       - name: Build and publish to Maven Central
-        run: mvn deploy -Pcentral -Dmaven.test.skip=true -Dcyclonedx.skip=true -Dossindex.skip=true -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}"
+        run: mvn -B deploy -Pcentral -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}"
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}

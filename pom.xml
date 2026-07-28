@@ -61,6 +61,10 @@
         <spring-boot3.version>3.2.5</spring-boot3.version>
         <spring-boot4.version>4.0.5</spring-boot4.version>
 
+        <!-- Jackson 2.x pinned above what the Boot 4 BOM manages. See the
+             jackson-bom import in dependencyManagement for the reason. -->
+        <jackson2-fixed.version>2.21.4</jackson2-fixed.version>
+
         <!-- Reproducible builds: strips timestamps from JAR manifests -->
         <project.build.outputTimestamp>2026-03-13T05:26:17Z</project.build.outputTimestamp>
 
@@ -79,6 +83,29 @@
                 <groupId>com.zerionis</groupId>
                 <artifactId>zerionis-log-core</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <!--
+                Jackson 2.x BOM, imported BEFORE the Spring Boot 4 BOM so it wins.
+                The Boot 4 BOM manages Jackson 2.x at 2.21.2, which carries
+                CVE-2026-54512 and CVE-2026-54513 (arbitrary code execution in
+                jackson-databind) plus GHSA-r7wm-3cxj-wff9 in jackson-core. Those
+                reach consumers: zerionis-log-spring-boot4 declares Jackson 2.x at
+                compile scope on purpose, because Boot 4 ships Jackson 3.x under a
+                different namespace and the core is compiled against 2.x.
+                Detected by Trivy on 2026-07-28.
+
+                Only zerionis-log-spring-boot4 is affected. The boot2 and boot3
+                modules import their own Boot BOM in their own dependencyManagement,
+                which takes precedence over anything inherited from here, so they
+                keep Jackson 2.13.5 and 2.15.4 respectively.
+            -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson2-fixed.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <!--
@@ -161,24 +188,12 @@
             </plugin>
 
             <!--
-                OSS Index Audit: scans all dependencies for known CVEs on every build.
-                Connects to Sonatype OSS Index (free, no API key needed).
-                Run manually: mvn ossindex:audit
+                CVE scanning lives in CI (Trivy), not here. ossindex-maven-plugin
+                was removed on 2026-07-28: the OSS Index API now answers HTTP 401
+                without credentials and the plugin only logs [WARNING] on failure,
+                so the build passed green having scanned nothing. A gate that
+                fails open is worse than no gate.
             -->
-            <plugin>
-                <groupId>org.sonatype.ossindex.maven</groupId>
-                <artifactId>ossindex-maven-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>audit-dependencies</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>audit</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 
             <!--
                 CycloneDX SBOM: generates a Software Bill of Materials on every build.

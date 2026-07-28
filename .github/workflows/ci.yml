@@ -7,7 +7,35 @@ on:
     branches: [main, master]
 
 jobs:
+  secretos:
+    name: Cero secretos en el repositorio
+    runs-on: ubuntu-latest
+    env:
+      # renovate: datasource=github-releases depName=gitleaks/gitleaks
+      GITLEAKS_VERSION: 8.30.1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Sin el historico completo gitleaks solo veria el ultimo commit.
+          fetch-depth: 0
+
+      # Se invoca el binario en vez de gitleaks-action porque la accion deduce un
+      # rango de commits del evento de push y lo pasa a git log. Cuando ese rango
+      # no existe (commit raiz sin padre, rama nueva, push forzado) git escribe a
+      # stderr y la accion aborta con "failed to scan Git repository". Paso en
+      # zerionis-cimiento el 2026-07-27: quedo en rojo habiendo escaneado cero
+      # bytes, y un gate que falla por no poder leer normaliza el rojo.
+      #
+      # Se escanea el historico entero y no el diff a proposito: un secreto que se
+      # commitea y se borra despues sigue estando filtrado.
+      - name: gitleaks sobre todo el historico
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks git --redact --no-banner --verbose .
+
   build:
+    name: Compilacion y suite
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,8 +46,59 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
 
+      # El SBOM se genera en el build completo de abajo, no en este preinstall
+      # desechable.
       - name: Pre-install core
-        run: mvn install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true -Dossindex.skip=true
+        run: mvn -B install -pl :zerionis-log-core -DskipTests -Dcyclonedx.skip=true
 
+      # Sin -Dcyclonedx.skip: el SBOM es lo que README.md:208 promete como
+      # caracteristica de seguridad del artefacto y hasta el 2026-07-28 no se
+      # generaba en ninguna de las dos rutas.
       - name: Build and test
-        run: mvn verify -Dcyclonedx.skip=true -Dossindex.skip=true
+        run: mvn -B verify
+
+  dependencias:
+    name: CVE en dependencias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      # Trivy lee los pom.xml y resuelve las versiones efectivas contra el
+      # repositorio local. Sin este paso el repositorio local esta vacio, Trivy
+      # sale a buscar los POM padre a repo.maven.apache.org y ahi recibe
+      # 429 Too Many Requests con Retry-After de 1800 segundos, que aborta el
+      # escaneo con FATAL. Reproducido local el 2026-07-28.
+      - name: Poblar el repositorio local de Maven
+        run: mvn -B -q dependency:go-offline -Dcyclonedx.skip=true
+
+      # Sustituye a ossindex-maven-plugin, quitado del pom el 2026-07-28 porque
+      # la API responde 401 sin credenciales y el plugin solo emitia [WARNING].
+      #
+      # severity CRITICAL,HIGH y exit-code 1: un CVE medio en una transitiva
+      # bloqueando el merge convierte el gate en ruido y termina apagado. Los
+      # medios se ven en el reporte, no en el semaforo.
+      - name: Trivy
+        # El tag lleva "v": sin ella GitHub no resuelve la accion y el job muere
+        # en "Set up job" sin escanear nada.
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          # Con el repositorio local ya poblado por el paso anterior, Trivy
+          # resuelve todo desde disco. Sin esta bandera vuelve a salir a la red
+          # aunque tenga el artefacto local, y reaparece el 429.
+          TRIVY_OFFLINE_SCAN: 'true'
+        with:
+          scan-type: fs
+          scan-ref: .
+          # Solo vuln: los secretos los cubre el job gitleaks sobre el historico
+          # completo, que ve mas que un escaneo del arbol de trabajo.
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
